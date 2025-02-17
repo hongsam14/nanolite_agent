@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Diagnostics.Tracing;
 using Microsoft.Diagnostics.Tracing.Parsers;
+using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
 using Microsoft.Diagnostics.Tracing.Session;
 
 namespace nanolite_agent.EventSession
@@ -14,6 +15,8 @@ namespace nanolite_agent.EventSession
         public readonly string SessionName = "nanolite_process_session";
         private readonly TraceEventSession traceEventSession;
         private Task sessionTask;
+
+        private readonly Tracepoint.ProcessCreate processCreate;
         
         public ProcessEventSession()
         {
@@ -24,8 +27,11 @@ namespace nanolite_agent.EventSession
             };
 
             sessionTask = null;
+
+            this.processCreate = new Tracepoint.ProcessCreate();
             // add privider to ETW
             subscribeProvider();
+            registerCallback();
         }
 
         public void StartSession()
@@ -59,6 +65,14 @@ namespace nanolite_agent.EventSession
 
         private void registerCallback()
         {
+            this.traceEventSession.Source.Kernel.ProcessStart += this.simpleFunc;
+        }
+
+        private void simpleFunc(ProcessTraceData traceData)
+        {
+            var log = this.processCreate.EventLog(traceData);
+            if (log == null)
+                return;
         }
     }
 }
