@@ -53,8 +53,8 @@ namespace nanolite_agent.Tracepoint
         /// <value>Property <c>ProcessID</c> represents Process ID of the Agent.</value>
         public int ProcessID { get; private set; }
 
-        protected Regex userNameRegex;
-        protected Regex myselfRegex;
+        protected Regex UserNameRegex;
+        protected Regex MyselfRegex;
 
         // ttps://learn.microsoft.com/en-us/aspnet/core/grpc/?view=aspnetcore-8.0
         // TODO: Add gRPC client, dependency injection
@@ -63,8 +63,8 @@ namespace nanolite_agent.Tracepoint
             this.EventID = eventID;
             this.ProcessID = SelfInfo.PID;
             // Regex for filtering
-            userNameRegex = new Regex(@"^*\\SYSTEM");
-            myselfRegex = new Regex(@"^*\\googoo_agent\.exe");
+            UserNameRegex = new Regex(@"^*\\SYSTEM");
+            MyselfRegex = new Regex(@"^*\\nanolite-agent\.exe");
             // Default Prefilter
             this.PreFilterFunc += FilterByMySelfPID;
             this.PreFilterFunc += FilterBySystemProcessor;
@@ -96,18 +96,18 @@ namespace nanolite_agent.Tracepoint
 
         private bool FilterByUserName(JObject logData)
         {
-            if (logData.ContainsKey("User") && userNameRegex.IsMatch(logData["User"]?.ToString())) // System Processor
+            if (logData.ContainsKey("User") && UserNameRegex.IsMatch(logData["User"]?.ToString())) // System Processor
                 return false;
-            if (logData.ContainsKey("SourceUser") && userNameRegex.IsMatch(logData["SourceUser"]?.ToString())) // System Processor
+            if (logData.ContainsKey("SourceUser") && UserNameRegex.IsMatch(logData["SourceUser"]?.ToString())) // System Processor
                 return false;
             return true;
         }
 
         private bool FilterByMySelf(JObject logData)
         {
-            if (logData.ContainsKey("Image") && myselfRegex.IsMatch(logData["Image"]?.ToString())) // Related with agent
+            if (logData.ContainsKey("Image") && MyselfRegex.IsMatch(logData["Image"]?.ToString())) // Related with agent
                 return false;
-            if (logData.ContainsKey("SourceImage") && myselfRegex.IsMatch(logData["SourceImage"]?.ToString())) // Related with agent
+            if (logData.ContainsKey("SourceImage") && MyselfRegex.IsMatch(logData["SourceImage"]?.ToString())) // Related with agent
                 return false;
             return true;
         }
