@@ -1,22 +1,25 @@
-﻿using Microsoft.Diagnostics.Tracing;
-using Newtonsoft.Json.Linq;
+﻿// <copyright file="ProcessCreate.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
-namespace nanolite_agent.Tracepoint
+namespace Nanolite_agent.Tracepoint
 {
+    using Microsoft.Diagnostics.Tracing;
+    using Newtonsoft.Json.Linq;
+
     /// <summary>
     /// kernel_process_creation:
     /// category: process_creation
     /// product: windows
-    /// conditions:
     /// EventID: 1
-    /// rewrite:
-    /// product: windows
-    /// service: kernel-process
+    /// service: kernel-process.
     /// </summary>
-    public class ProcessCreate : Event
+    public class ProcessCreate : Syslog
     {
-        public ProcessCreate() : base(1)
-        { }
+        public ProcessCreate()
+            : base(1)
+        {
+        }
 
         public override JObject EventLog(TraceEvent traceData)
         {
@@ -35,10 +38,6 @@ namespace nanolite_agent.Tracepoint
             {
                 return null;
             }
-
-#if DEBUG
-            System.Console.WriteLine(jsonLog);
-#endif
             return jsonLog;
         }
     }

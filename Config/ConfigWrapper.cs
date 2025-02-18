@@ -1,4 +1,8 @@
-﻿namespace Nanolite_agent.Config
+﻿// <copyright file="ConfigWrapper.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+namespace Nanolite_agent.Config
 {
     /// <summary>
     /// ConfigWrapper is a wrapper class for the config file.

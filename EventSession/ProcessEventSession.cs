@@ -1,63 +1,73 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Diagnostics.Tracing;
-using Microsoft.Diagnostics.Tracing.Parsers;
-using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
-using Microsoft.Diagnostics.Tracing.Session;
+﻿// <copyright file="ProcessEventSession.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
-namespace nanolite_agent.EventSession
+namespace Nanolite_agent.EventSession
 {
+    using System;
+    using System.Threading.Tasks;
+    using Microsoft.Diagnostics.Tracing.Parsers;
+    using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
+    using Microsoft.Diagnostics.Tracing.Session;
+    
+    public sealed class ProcessEventHooker
+    {
+        private readonly Tracepoint.ProcessCreate processCreate;
+        public void ProcessCreateHooker(ProcessTraceData traceData)
+        {
+            var log = this.processCreate.EventLog(traceData);
+            if (log == null)
+                return;
+        }
+    }
+    
     public sealed class ProcessEventSession : IEventSession
     {
         public readonly string SessionName = "nanolite_process_session";
-        private readonly TraceEventSession traceEventSession;
-        private Task sessionTask;
+        private readonly TraceEventSession _traceEventSession;
+        private Task _sessionTask;
 
-        private readonly Tracepoint.ProcessCreate processCreate;
         
         public ProcessEventSession()
         {
-            this.traceEventSession = new TraceEventSession(SessionName)
+            this._traceEventSession = new TraceEventSession(SessionName)
             {
                 StopOnDispose = true,
                 BufferSizeMB = 1024
             };
 
-            sessionTask = null;
+            this._sessionTask = null;
 
-            this.processCreate = new Tracepoint.ProcessCreate();
-            // add privider to ETW
+            //this.processcreate = new tracepoint.processcreate();
+            // add privider to etw
             subscribeProvider();
             registerCallback();
         }
 
         public void StartSession()
         {
-            this.sessionTask = Task.Run(() =>
+            this._sessionTask = Task.Run(() =>
             {
                 // blocked until stop is called.
-                this.traceEventSession?.Source.Process();
+                this._traceEventSession?.Source.Process();
             });
         }
 
         public void StopSession()
         {
-            this.traceEventSession?.Stop();
+            this._traceEventSession?.Stop();
         }
 
         public void WaitSession()
         {
-            if (this.sessionTask == null)
+            if (this._sessionTask == null)
                 throw new NullReferenceException("sessonTask is not running. Call StartSession before calling WaitSession");
-            this.sessionTask.Wait();
+            this._sessionTask.Wait();
         }
 
         private void subscribeProvider()
         {
-            this.traceEventSession.EnableKernelProvider(
+            this._traceEventSession.EnableKernelProvider(
                 // Event 1: kernel_process_creation
                 KernelTraceEventParser.Keywords.Process
                 );
@@ -65,12 +75,12 @@ namespace nanolite_agent.EventSession
 
         private void registerCallback()
         {
-            this.traceEventSession.Source.Kernel.ProcessStart += this.simpleFunc;
+            this._traceEventSession.Source.Kernel.ProcessStart += this.simpleFunc;
         }
 
         private void simpleFunc(ProcessTraceData traceData)
         {
-            var log = this.processCreate.EventLog(traceData);
+            var log = this._processCreate.EventLog(traceData);
             if (log == null)
                 return;
         }

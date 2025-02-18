@@ -1,4 +1,7 @@
-﻿
+﻿// <copyright file="SelfInfo.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
 namespace Nanolite_agent
 {
     using System;
