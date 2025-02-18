@@ -25,7 +25,7 @@ namespace Nanolite_agent.Tracepoint
         {
             JObject jsonLog;
 
-            if (!PreFilterFunc(traceData))
+            if (!this.PreFilterFunc(traceData))
             {
                 return null;
             }

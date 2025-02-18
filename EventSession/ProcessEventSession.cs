@@ -9,7 +9,7 @@ namespace Nanolite_agent.EventSession
     using Microsoft.Diagnostics.Tracing.Parsers;
     using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
     using Microsoft.Diagnostics.Tracing.Session;
-    
+
     public sealed class ProcessEventHooker
     {
         private readonly Tracepoint.ProcessCreate processCreate;
