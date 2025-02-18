@@ -1,18 +1,43 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace nanolite_agent
+﻿
+namespace Nanolite_agent
 {
-    public static class SelfInfo
-    {
-        public static int PID { get; private set; }
-        public static int ThreadID { get; private set; }
-        public static string HostName { get; private set; }
-        public static string UserName { get; private set; }
+    using System;
 
+    /// <summary>
+    /// SelfInfo class of the Nanolite agent.
+    /// SelfInfo class contains the information of the current nanolite_agent process.
+    /// It is used at preFiltering.
+    /// </summary>
+    public static partial class SelfInfo
+    {
+        /// <summary>
+        /// Gets PID is the process ID of the current nanolite_agent process.
+        /// </summary>
+        public static int PID { get; private set; }
+
+        /// <summary>
+        /// Gets ThreadID is the thread ID of the current nanolite_agent process.
+        /// </summary>
+        public static int ThreadID { get; private set; }
+
+        /// <summary>
+        /// Gets HostName is the host name of the current nanolite_agent process.
+        /// </summary>
+        public static string HostName { get; private set; }
+
+        /// <summary>
+        /// Gets UserName is the user name of the current nanolite_agent process.
+        /// </summary>
+        public static string UserName { get; private set; }
+    }
+
+    /// <summary>
+    /// SelfInfo class of the Nanolite agent.
+    /// SelfInfo class contains the information of the current nanolite_agent process.
+    /// It is used at preFiltering.
+    /// </summary>
+    public static partial class SelfInfo
+    {
         static SelfInfo()
         {
             PID = System.Diagnostics.Process.GetCurrentProcess().Id;
