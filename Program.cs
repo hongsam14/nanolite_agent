@@ -1,23 +1,37 @@
-﻿using System;
-using Microsoft.Diagnostics.Tracing.Session;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace nanolite_agent
+﻿// <copyright file="Program.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+namespace Nanolite_agent
 {
+    using System;
+    using Microsoft.Diagnostics.Tracing.Session;
+
     internal class Program
     {
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
-            if (!(TraceEventSession.IsElevated()) ?? false)
+            // check if the program is running as an administrator
+            if (!TraceEventSession.IsElevated() ?? false)
             {
-                Console.WriteLine("Run as Administrator");
+                Console.WriteLine(value: "Run as Administrator");
                 return;
             }
-            //Initialize the gRPC Client
+
+            // check SelfInfo class is initialized.
             Console.WriteLine($"Self PID: {SelfInfo.PID} : ThreadId {SelfInfo.ThreadID}");
+
+            // get config from config.yml
+            try
+            {
+                Nanolite_agent.Config.Config config = new Nanolite_agent.Config.Config("config.yml");
+                Console.WriteLine($"CollectorIP: {config.CollectorIP} : CollectorPort {config.CollectorPort} : Exporter {config.Exporter}");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                return;
+            }
+
             // Initialize the ETW session
             EventSession.ProcessEventSession procEventSession = new EventSession.ProcessEventSession();
 
@@ -29,10 +43,11 @@ namespace nanolite_agent
 
             // Start Session
             procEventSession.StartSession();
+
             // Wait Session.
             procEventSession.WaitSession();
 
-            Console.WriteLine("프로그램이 종료되었습니다. 콘솔 창을 닫으려면 아무 키나 누르세요.");
+            Console.WriteLine(value: "Program terminated. Press any button");
             Console.ReadKey();
         }
     }
