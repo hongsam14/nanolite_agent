@@ -1,0 +1,3 @@
+﻿CollectorIP: "localhost"
+CollectorPort: "8888"
+Exporter: "TEST"

@@ -10,22 +10,12 @@ namespace Nanolite_agent.EventSession
     using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
     using Microsoft.Diagnostics.Tracing.Session;
 
-    public sealed class ProcessEventHooker
-    {
-        private readonly Tracepoint.ProcessCreate processCreate;
-        public void ProcessCreateHooker(ProcessTraceData traceData)
-        {
-            var log = this.processCreate.EventLog(traceData);
-            if (log == null)
-                return;
-        }
-    }
-    
     public sealed class ProcessEventSession : IEventSession
     {
         public readonly string SessionName = "nanolite_process_session";
         private readonly TraceEventSession _traceEventSession;
         private Task _sessionTask;
+        private readonly Tracepoint.ProcessCreate _processCreate;
 
         
         public ProcessEventSession()
@@ -38,7 +28,7 @@ namespace Nanolite_agent.EventSession
 
             this._sessionTask = null;
 
-            //this.processcreate = new tracepoint.processcreate();
+            this._processCreate = new Tracepoint.ProcessCreate();
             // add privider to etw
             subscribeProvider();
             registerCallback();
@@ -83,6 +73,7 @@ namespace Nanolite_agent.EventSession
             var log = this._processCreate.EventLog(traceData);
             if (log == null)
                 return;
+            Console.WriteLine(log.ToString());
         }
     }
 }
