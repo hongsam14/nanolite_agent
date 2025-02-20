@@ -22,16 +22,18 @@ namespace Nanolite_agent
             Console.WriteLine($"Self PID: {SelfInfo.PID} : ThreadId {SelfInfo.ThreadID}");
 
             // get config from config.yml
-            //try
-            //{
-            //    Nanolite_agent.Config.Config config = new Nanolite_agent.Config.Config("config.yml");
-            //    Console.WriteLine($"CollectorIP: {config.CollectorIP} : CollectorPort {config.CollectorPort} : Exporter {config.Exporter}");
-            //}
-            //catch (Exception e)
-            //{
-            //    Console.WriteLine(e.Message);
-            //    return;
-            //}
+#if !DEBUG
+            try
+            {
+                Nanolite_agent.Config.Config config = new Nanolite_agent.Config.Config("config.yml");
+                Console.WriteLine($"CollectorIP: {config.CollectorIP} : CollectorPort {config.CollectorPort} : Exporter {config.Exporter}");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                return;
+            }
+#endif
 
             // Initialize the ETW session
             EventSession.ProcessEventSession procEventSession = new EventSession.ProcessEventSession();

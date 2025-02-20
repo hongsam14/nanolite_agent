@@ -66,6 +66,7 @@ namespace Nanolite_agent.EventSession
         private void registerCallback()
         {
             this._traceEventSession.Source.Kernel.ProcessStart += this.simpleFunc;
+            this._traceEventSession.Source.Kernel.ProcessStop += this.simpleFunc;
         }
 
         private void simpleFunc(ProcessTraceData traceData)
