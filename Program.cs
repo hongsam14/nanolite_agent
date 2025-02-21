@@ -22,10 +22,11 @@ namespace Nanolite_agent
             Console.WriteLine($"Self PID: {SelfInfo.PID} : ThreadId {SelfInfo.ThreadID}");
 
             // get config from config.yml
+            Config.Config config = null;
 #if !DEBUG
             try
             {
-                Nanolite_agent.Config.Config config = new Nanolite_agent.Config.Config("config.yml");
+                config = new Nanolite_agent.Config.Config("config.yml");
                 Console.WriteLine($"CollectorIP: {config.CollectorIP} : CollectorPort {config.CollectorPort} : Exporter {config.Exporter}");
             }
             catch (Exception e)
@@ -35,14 +36,19 @@ namespace Nanolite_agent
             }
 #endif
 
+            // Init Beacon
+            Beacon.Beacon bcon = new Beacon.Beacon(config);
+
             // Initialize the ETW session
-            EventSession.ProcessEventSession procEventSession = new EventSession.ProcessEventSession();
+            EventSession.ProcessEventSession procEventSession = new EventSession.ProcessEventSession(bcon);
 
             // Ctrl + C add event
             Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)
             {
                 procEventSession.StopSession();
+                bcon.Stop();
             };
+
 
             // Start Session
             procEventSession.StartSession();

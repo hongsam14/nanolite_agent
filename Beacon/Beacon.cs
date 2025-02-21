@@ -8,11 +8,16 @@ namespace Nanolite_agent.Beacon
     using System.Collections.Generic;
     using System.Diagnostics;
     using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Hosting;
+    using Microsoft.Extensions.Logging;
     using Nanolite_agent.Config;
     using Nanolite_agent.NanoException;
     using Newtonsoft.Json.Linq;
     using OpenTelemetry;
+    using OpenTelemetry.Logs;
     using OpenTelemetry.Metrics;
+    using OpenTelemetry.Resources;
     using OpenTelemetry.Trace;
 
     public class Beacon
@@ -20,6 +25,7 @@ namespace Nanolite_agent.Beacon
         public readonly string BeaconName = "nanolite_beacon";
 
         private TracerProvider _tracerProvider;
+        private LoggerProvider _loggerProvider;
 
         private ActivitySource _spanSource;
 
@@ -41,23 +47,61 @@ namespace Nanolite_agent.Beacon
             {
                 throw new NanoException.ConfigException("invalid config. collector config is null");
             }
+            string serviceName = config.Exporter;
+#else
+            string serviceName = "TestBed";
 #endif
             // init Otel traceProvider
             try
             {
                 this._tracerProvider = Sdk.CreateTracerProviderBuilder().AddSource(this.BeaconName)
-                    .AddConsoleExporter()
+                    .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName))
+#if DEBUG
+                    .AddSource(serviceName)
+#else
+                    .AddSource(serviceName)
+#endif
+                    //.AddConsoleExporter()
                     .AddOtlpExporter(
                     options =>
                         {
 #if DEBUG
                             // Jaeger collector port
-                            options.Endpoint = new Uri("localhost:14250");
+                            options.Endpoint = new Uri("http://10.7.0.25:4317");
 #else
                             options.Endpoint = new Uri($"{config?.CollectorIP}:{config?.CollectorPort}");
 #endif
                         })
                     .Build();
+
+//                var builder = Host.CreateDefaultBuilder().ConfigureLogging(logging =>
+//                {
+//                    logging.ClearProviders();
+//                    logging.AddConsole();
+
+//                    logging.AddOpenTelemetry(options =>
+//                    {
+//                        options.IncludeFormattedMessage = true;
+//                        options.IncludeScopes = true;
+//                        options.ParseStateValues = true;
+
+//                        options.AddOtlpExporter(opts =>
+//                        {
+//#if DEBUG
+//                            // Jaeger collector port
+//                            opts.Endpoint = new Uri("http://10.7.0.25:4317");
+//#else
+//                            opts.Endpoint = new Uri($"{config?.CollectorIP}:{config?.CollectorPort}");
+//#endif
+//                        });
+//                    });
+//                });
+
+//                var host = builder.Build();
+
+//                var logger = host.Services.GetRequiredService<ILogger<Beacon>>();
+
+//                host.Run();
             }
             catch (Exception e)
             {
@@ -81,6 +125,7 @@ namespace Nanolite_agent.Beacon
 #else
                 this._spanSource = new ActivitySource("TestBed");
 #endif
+
             }
             catch (Exception e)
             {
@@ -91,6 +136,19 @@ namespace Nanolite_agent.Beacon
 
             this._processCreateLog = new Tracepoint.ProcessCreate();
             this._processTerminateLog = new Tracepoint.ProcessTerminate();
+
+            // beacon start
+            Activity span = this._spanSource.StartActivity(SelfInfo.UserName);
+            this._processSpan[0] = span;
+            span.Start();
+        }
+
+        public void Stop()
+        {
+            foreach (var activity in this._processSpan)
+            {
+                activity.Value.Stop();
+            }
         }
 
         public void ProcessCreation(ProcessTraceData traceData)
@@ -121,32 +179,44 @@ namespace Nanolite_agent.Beacon
             else
             {
                 // when parent pid exists. activate parent span because it's already exists before agent start
-                pSpan = this._spanSource.StartActivity(image);
-                if (pSpan == null)
-                {
-                    throw new NanoException.BeaconException("Failed to create new span");
-                }
+                //pSpan = this._spanSource.StartActivity(image, ActivityKind.Internal, default(ActivityContext));
+                //if (pSpan == null)
+                //{
+                //    throw new NanoException.BeaconException("Failed to create new span");
+                //}
 
-                pSpan.Start();
+                //this._processSpan[ppid.Value] = pSpan;
+                //pSpan.Start();
+                pSpan = this._processSpan[0];
             }
 
             spanContext = pSpan.Context;
+            span = this._spanSource.StartActivity(image, ActivityKind.Internal, spanContext);
 
             // start pid span
-            span = this._spanSource.StartActivity(image, ActivityKind.Internal, spanContext);
             if (span == null)
             {
                 throw new NanoException.BeaconException("Failed to create new span");
             }
 
-            span.SetTag("sigma.logsource.category", "process_creation");
+            //span.SetTag("sigma.logsource.category", "process_creation");
             span.SetTag("sigma.logsource.product", "windows");
 
             this._processSpan[pid.Value] = span;
 
             span.Start();
             span.AddEvent(new ActivityEvent(log.ToString()));
-            //span.SetStatus(ActivityStatusCode.Ok);
+
+            // For test
+            if (image.StartsWith("ms"))
+            {
+                span.SetStatus(ActivityStatusCode.Ok);
+            }
+            else
+            {
+                span.SetStatus(ActivityStatusCode.Error);
+            }
+            Console.WriteLine(image);
         }
 
         public void ProcessTerminate(ProcessTraceData traceData)
@@ -181,11 +251,13 @@ namespace Nanolite_agent.Beacon
             if (pid.HasValue && this._processSpan.ContainsKey(pid.Value))
             {
                 span = this._processSpan[pid.Value];
-                span.SetTag("sigma.logsource.category", "process_terminate");
+                //span.SetTag("sigma.logsource.category", "process_terminate");
                 span.SetTag("sigma.logsource.product", "windows");
                 span.AddEvent(new ActivityEvent(log.ToString()));
                 //span.SetStatus(ActivityStatusCode.Ok);
                 span.Stop();
+
+                this._processSpan.Remove(pid.Value);
             }
         }
     }

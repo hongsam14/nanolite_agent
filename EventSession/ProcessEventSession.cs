@@ -9,22 +9,26 @@ namespace Nanolite_agent.EventSession
     using Microsoft.Diagnostics.Tracing.Parsers;
     using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
     using Microsoft.Diagnostics.Tracing.Session;
+    using Nanolite_agent.Beacon;
+    using Nanolite_agent.Tracepoint;
 
     public sealed class ProcessEventSession : IEventSession
     {
         public readonly string SessionName = "nanolite_process_session";
-        private readonly TraceEventSession _traceEventSession;
-        private Task _sessionTask;
-        private readonly Tracepoint.ProcessCreate _processCreate;
 
-        
-        public ProcessEventSession()
+        private readonly TraceEventSession _traceEventSession;
+        private readonly ProcessCreate _processCreate;
+        private readonly Beacon _bcon;
+        private Task _sessionTask;
+
+        public ProcessEventSession(Beacon bcon)
         {
             this._traceEventSession = new TraceEventSession(SessionName)
             {
                 StopOnDispose = true,
                 BufferSizeMB = 1024
             };
+            this._bcon = bcon;
 
             this._sessionTask = null;
 
@@ -65,16 +69,8 @@ namespace Nanolite_agent.EventSession
 
         private void registerCallback()
         {
-            this._traceEventSession.Source.Kernel.ProcessStart += this.simpleFunc;
-            this._traceEventSession.Source.Kernel.ProcessStop += this.simpleFunc;
-        }
-
-        private void simpleFunc(ProcessTraceData traceData)
-        {
-            var log = this._processCreate.EventLog(traceData);
-            if (log == null)
-                return;
-            Console.WriteLine(log.ToString());
+            this._traceEventSession.Source.Kernel.ProcessStart += this._bcon.ProcessCreation;
+            this._traceEventSession.Source.Kernel.ProcessStop += this._bcon.ProcessTerminate;
         }
     }
 }
