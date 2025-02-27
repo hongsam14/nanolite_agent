@@ -25,6 +25,7 @@ namespace Nanolite_agent.Beacon
     using OpenTelemetry.Metrics;
     using OpenTelemetry.Resources;
     using OpenTelemetry.Trace;
+    using Google.Protobuf;
     using static System.Net.Mime.MediaTypeNames;
 
     public class Beacon
@@ -72,19 +73,16 @@ namespace Nanolite_agent.Beacon
                     .AddService(serviceName))
 #if DEBUG
                     .AddSource(serviceName)
-#else
-                    .AddSource(serviceName)
-#endif
-                    //.AddConsoleExporter()
-#if DEBUG
-                    .AddKafkaExporter("http://localhost.9092", "otel-trace")
+                    .AddKafkaExporter("localhost", "otel-traces")
+                    //.AddOtlpExporter(
+                    //options =>
+                    //    {
+                    //        options.Endpoint = new Uri("http://localhost:4317");
+                    //    })
 #else
                     .AddKafkaExporter(config.CollectorIP, config.CollectorPort)
 #endif
                     .Build();
-
-                var tracer = TracerProvider.Default.GetTracer(serviceName);
-
             }
             catch (Exception e)
             {
@@ -211,7 +209,7 @@ namespace Nanolite_agent.Beacon
             span.Start();
             span.AddEvent(new ActivityEvent(log.ToString()));
 
-            Console.WriteLine(log.ToString());
+            //Console.WriteLine(log.ToString());
 
             // For test
             span.SetStatus(ActivityStatusCode.Ok);
@@ -259,7 +257,7 @@ namespace Nanolite_agent.Beacon
                 this._processSpan.Remove(pid.Value);
             }
 
-            Console.WriteLine(log.ToString());
+            //Console.WriteLine(log.ToString());
         }
 
         public void TcpIpConnect(TcpIpConnectTraceData traceData)
@@ -337,7 +335,7 @@ namespace Nanolite_agent.Beacon
             span.Start();
             span.AddEvent(new ActivityEvent(log.ToString()));
 
-            Console.WriteLine(log.ToString());
+            //Console.WriteLine(log.ToString());
 
             // For test
             span.SetStatus(ActivityStatusCode.Ok);
@@ -387,7 +385,7 @@ namespace Nanolite_agent.Beacon
                 this._tcpIpv4Span.Remove(key);
             }
 
-            Console.WriteLine(log.ToString());
+            //Console.WriteLine(log.ToString());
         }
 
         public void TcpIpSend(TcpIpSendTraceData traceData)

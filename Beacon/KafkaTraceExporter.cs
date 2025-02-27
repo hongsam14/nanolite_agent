@@ -6,9 +6,12 @@ namespace Nanolite_agent.Beacon
 {
     using System;
     using System.Diagnostics;
+    using System.Text;
     using Confluent.Kafka;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
     using OpenTelemetry;
+    using OpenTelemetry.Resources;
 
     public class KafkaTraceExporter: BaseExporter<Activity>
     {
@@ -23,36 +26,43 @@ namespace Nanolite_agent.Beacon
 
         public override ExportResult Export(in Batch<Activity> batch)
         {
-            foreach (Activity activity in batch)
+            using (var scope = SuppressInstrumentationScope.Begin())
             {
-                string traceData = JsonConvert.SerializeObject(new
+                foreach (Activity activity in batch)
                 {
-                    Id = activity.Id,
-                    TraceId = activity.TraceId,
-                    SpanId = activity.SpanId,
-                    ParentSpanId = activity.ParentSpanId,
-                    Name = activity.DisplayName,
-                    StartTime = activity.StartTimeUtc,
-                    Status = activity.Status,
-                    Tags = activity.Tags,
-                    Events = activity.Events,
-                    Links = activity.Links,
-                    //Kind = activity.Kind,
-                });
+                    string traceData = JsonConvert.SerializeObject(activity);
 
-                // Produce the trace data to the Kafka topic
-                try
-                {
-                    this._producer.Produce(this._topic, new Message<Null, string> { Value = traceData });
+                    Console.WriteLine($"data: {traceData}");
+
+                    // Produce the trace data to the Kafka topic
+                    try
+                    {
+                        Message<Null, string> msg = new Message<Null, string> { Value = traceData };
+
+                        msg.Headers = new Headers();
+                        msg.Headers.Add("content-type", Encoding.UTF8.GetBytes("application/json"));
+
+                        this._producer.Produce(this._topic, msg);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to produce message: {ex.Message}");
+                        return ExportResult.Failure;
+                    }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Failed to produce message: {ex.Message}");
-                    return ExportResult.Failure;
-                }
+
+                return ExportResult.Success;
             }
+        }
 
-            return ExportResult.Success;
+        protected override bool OnShutdown(int timeoutMilliseconds)
+        {
+            return base.OnShutdown(timeoutMilliseconds);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
         }
     }
 }

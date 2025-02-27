@@ -7,6 +7,7 @@ namespace Nanolite_agent.Beacon
     using Confluent.Kafka;
     using OpenTelemetry;
     using OpenTelemetry.Trace;
+    using System;
 
     public static class TracerProviderBuilderExtensions
     {
@@ -17,6 +18,7 @@ namespace Nanolite_agent.Beacon
 
             using (KafkaTraceExporter kafkaExporter = new KafkaTraceExporter(producerConfig, topic))
             {
+                //using (BatchActivityExportProcessor processor = new BatchActivityExportProcessor(kafkaExporter))
                 using (SimpleActivityExportProcessor processor = new SimpleActivityExportProcessor(kafkaExporter))
                 {
                     return builder.AddProcessor(processor);

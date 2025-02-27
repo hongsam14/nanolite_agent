@@ -423,6 +423,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Beacon\Beacon.cs" />
+    <Compile Include="Beacon\KafkaBatchExportProcessor.cs" />
+    <Compile Include="Beacon\KafkaTraceExporter.cs" />
+    <Compile Include="Beacon\TracerProviderBuilderExtensions.cs" />
     <Compile Include="Config\Config.cs" />
     <Compile Include="Config\ConfigWrapper.cs" />
     <Compile Include="EventSession\IEventSession.cs" />
