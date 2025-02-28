@@ -4,14 +4,10 @@
 
 namespace Nanolite_agent.Beacon
 {
-    using Confluent.Kafka;
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Management;
-    using System.Security.Cryptography;
-    using Microsoft.CodeAnalysis;
-    using Microsoft.Diagnostics.Tracing.AutomatedAnalysis;
     using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
@@ -32,6 +28,7 @@ namespace Nanolite_agent.Beacon
     {
         public readonly string BeaconName = "nanolite_beacon";
 
+        private IHost _host;
         private TracerProvider _tracerProvider;
         private LoggerProvider _loggerProvider;
 
@@ -68,21 +65,46 @@ namespace Nanolite_agent.Beacon
             // init Otel traceProvider
             try
             {
-                this._tracerProvider = Sdk.CreateTracerProviderBuilder()
-                    .SetResourceBuilder(ResourceBuilder.CreateDefault()
-                    .AddService(serviceName))
+                OtlpExporterOptions option = new OtlpExporterOptions
+                {
 #if DEBUG
-                    .AddSource(serviceName)
-                    .AddKafkaExporter("localhost", "otel-traces")
-                    //.AddOtlpExporter(
-                    //options =>
-                    //    {
-                    //        options.Endpoint = new Uri("http://localhost:4317");
-                    //    })
+                    Endpoint = new Uri($"http://localhost:4317"),
 #else
-                    .AddKafkaExporter(config.CollectorIP, config.CollectorPort)
+                    Endpoint = new Uri($"http://{config.CollectorIP}:{config.CollectorPort}"),
 #endif
-                    .Build();
+                };
+                using (OtlpTraceExporter exporter = new OtlpTraceExporter(option))
+                {
+                    using (BatchActivityExportProcessor processor = new BatchActivityExportProcessor(exporter))
+                    {
+                        this._tracerProvider = Sdk.CreateTracerProviderBuilder()
+                            .SetResourceBuilder(ResourceBuilder.CreateDefault()
+                            .AddService(serviceName))
+                            .AddSource(serviceName)
+                            .AddProcessor(processor)
+                            .Build();
+                    }
+                }
+
+                using (OtlpLogExporter exporter = new OtlpLogExporter(option))
+                {
+                    using (BatchLogRecordExportProcessor processor = new BatchLogRecordExportProcessor(exporter))
+                    {
+                        // TODO: Add custom logger -> OpenTelemetry.Logs
+                        this._host = Host.CreateDefaultBuilder()
+                            .ConfigureServices((_, services) =>
+                            {
+                                services.AddLogging(loggingBuilder =>
+                                {
+                                    loggingBuilder.AddOpenTelemetry(options =>
+                                    {
+                                        options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName))
+                                            .AddProcessor(processor);
+                                    });
+                                });
+                            }).Build();
+                    }
+                }
             }
             catch (Exception e)
             {
@@ -209,11 +231,10 @@ namespace Nanolite_agent.Beacon
             span.Start();
             span.AddEvent(new ActivityEvent(log.ToString()));
 
-            //Console.WriteLine(log.ToString());
+            Console.WriteLine(log.ToString());
 
             // For test
             span.SetStatus(ActivityStatusCode.Ok);
-            Console.WriteLine(image);
 
             // add span to processSpan
             this._processSpan[pid.Value] = span;
@@ -257,7 +278,7 @@ namespace Nanolite_agent.Beacon
                 this._processSpan.Remove(pid.Value);
             }
 
-            //Console.WriteLine(log.ToString());
+            Console.WriteLine(log.ToString());
         }
 
         public void TcpIpConnect(TcpIpConnectTraceData traceData)
@@ -335,11 +356,10 @@ namespace Nanolite_agent.Beacon
             span.Start();
             span.AddEvent(new ActivityEvent(log.ToString()));
 
-            //Console.WriteLine(log.ToString());
+            Console.WriteLine(log.ToString());
 
             // For test
             span.SetStatus(ActivityStatusCode.Ok);
-            Console.WriteLine(image);
 
             // add span to tcpipv4Span
             this._tcpIpv4Span[$"{sAddress}->{dAddress}"] = span;
@@ -385,7 +405,7 @@ namespace Nanolite_agent.Beacon
                 this._tcpIpv4Span.Remove(key);
             }
 
-            //Console.WriteLine(log.ToString());
+            Console.WriteLine(log.ToString());
         }
 
         public void TcpIpSend(TcpIpSendTraceData traceData)
