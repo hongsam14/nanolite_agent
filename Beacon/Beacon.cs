@@ -73,38 +73,30 @@ namespace Nanolite_agent.Beacon
                     Endpoint = new Uri($"http://{config.CollectorIP}:{config.CollectorPort}"),
 #endif
                 };
-                using (OtlpTraceExporter exporter = new OtlpTraceExporter(option))
-                {
-                    using (BatchActivityExportProcessor processor = new BatchActivityExportProcessor(exporter))
-                    {
-                        this._tracerProvider = Sdk.CreateTracerProviderBuilder()
-                            .SetResourceBuilder(ResourceBuilder.CreateDefault()
-                            .AddService(serviceName))
-                            .AddSource(serviceName)
-                            .AddProcessor(processor)
-                            .Build();
-                    }
-                }
+                OtlpTraceExporter traceExporter = new OtlpTraceExporter(option);
+                BatchActivityExportProcessor traceProcessor = new BatchActivityExportProcessor(traceExporter);
+                this._tracerProvider = Sdk.CreateTracerProviderBuilder()
+                    .SetResourceBuilder(ResourceBuilder.CreateDefault()
+                    .AddService(serviceName))
+                    .AddSource(serviceName)
+                    .AddProcessor(traceProcessor)
+                    .Build();
 
-                using (OtlpLogExporter exporter = new OtlpLogExporter(option))
-                {
-                    using (BatchLogRecordExportProcessor processor = new BatchLogRecordExportProcessor(exporter))
+                OtlpLogExporter logExporter = new OtlpLogExporter(option);
+                BatchLogRecordExportProcessor logProcessor = new BatchLogRecordExportProcessor(logExporter);
+                // TODO: Add custom logger -> OpenTelemetry.Logs
+                this._host = Host.CreateDefaultBuilder()
+                    .ConfigureServices((_, services) =>
                     {
-                        // TODO: Add custom logger -> OpenTelemetry.Logs
-                        this._host = Host.CreateDefaultBuilder()
-                            .ConfigureServices((_, services) =>
+                        services.AddLogging(loggingBuilder =>
+                        {
+                            loggingBuilder.AddOpenTelemetry(options =>
                             {
-                                services.AddLogging(loggingBuilder =>
-                                {
-                                    loggingBuilder.AddOpenTelemetry(options =>
-                                    {
-                                        options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName))
-                                            .AddProcessor(processor);
-                                    });
-                                });
-                            }).Build();
-                    }
-                }
+                                options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName))
+                                    .AddProcessor(logProcessor);
+                            });
+                        });
+                    }).Build();
             }
             catch (Exception e)
             {
