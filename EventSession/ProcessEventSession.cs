@@ -6,6 +6,7 @@ namespace Nanolite_agent.EventSession
 {
     using System;
     using System.Threading.Tasks;
+    using Microsoft.Diagnostics.Tracing;
     using Microsoft.Diagnostics.Tracing.Parsers;
     using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
     using Microsoft.Diagnostics.Tracing.Session;
@@ -65,12 +66,38 @@ namespace Nanolite_agent.EventSession
                 // Event 1: kernel_process_creation
                 KernelTraceEventParser.Keywords.Process
                 );
+            //this._traceEventSession.EnableKernelProvider(new Guid("{22FB2CD6-0E7B-422B-A0C7-2FAD1FD0E716}"),
+            //    TraceEventLevel.Always,
+            //    (ulong)(0x0000000000000010 | // WINEVENT_KEYWORD_PROCESS
+            //    0x0000000000000020 // WINEVENT_KEYWORD_THREAD
+            //    ));
         }
 
         private void registerCallback()
         {
-            this._traceEventSession.Source.Kernel.ProcessStart += this._bcon.ProcessCreation;
+#if DEBUG
+            this._traceEventSession.Source.Kernel.ProcessStart += this.debugFunc;
+            this._traceEventSession.Source.Kernel.ProcessStop += this.debugFunc;
+#else
+            this._traceEventSession.Source.Kernel.ProcessStart += this._bcon.ProcessCreate;
             this._traceEventSession.Source.Kernel.ProcessStop += this._bcon.ProcessTerminate;
+#endif
+            //this._traceEventSession.Source.Kernel.AddCallbackForProviderEvent(
+            //    "Microsoft-Windows-Kernel-Process",
+            //    "ProcessStart",
+            //    this.debugFunc
+            //    );
+        }
+
+        private void debugFunc(TraceEvent data)
+        {
+            Console.WriteLine("--------------------");
+            Console.WriteLine($"{data.EventName}: {data.ProviderName}");
+            for (int i = 0; i < data.PayloadNames.Length; i++)
+            {
+                Console.WriteLine(data.PayloadNames[i]);
+            }
+            Console.WriteLine("--------------------");
         }
     }
 }
