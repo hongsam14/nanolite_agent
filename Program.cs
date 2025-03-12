@@ -41,12 +41,12 @@ namespace Nanolite_agent
 
             // Initialize the ETW session
             EventSession.ProcessEventSession procEventSession = new EventSession.ProcessEventSession(bcon);
-            //EventSession.NetworkEventSession netEventSession = new EventSession.NetworkEventSession(bcon);
+            EventSession.NetworkEventSession netEventSession = new EventSession.NetworkEventSession(bcon);
 
             // Ctrl + C add event
             Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)
             {
-                //netEventSession.StopSession();
+                netEventSession.StopSession();
                 procEventSession.StopSession();
                 bcon.Stop();
             };
@@ -54,11 +54,11 @@ namespace Nanolite_agent
 
             // Start Session
             procEventSession.StartSession();
-            //netEventSession.StartSession();
+            netEventSession.StartSession();
 
             // Wait Session.
             procEventSession.WaitSession();
-            //netEventSession.WaitSession();
+            netEventSession.WaitSession();
 
             Console.WriteLine(value: "Program terminated. Press any button");
             Console.ReadKey();

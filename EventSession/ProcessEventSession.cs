@@ -76,8 +76,10 @@ namespace Nanolite_agent.EventSession
         private void registerCallback()
         {
 #if DEBUG
-            this._traceEventSession.Source.Kernel.ProcessStart += this.debugFunc;
-            this._traceEventSession.Source.Kernel.ProcessStop += this.debugFunc;
+            //this._traceEventSession.Source.Kernel.ProcessStart += this.debugFunc;
+            //this._traceEventSession.Source.Kernel.ProcessStop += this.debugFunc;
+            this._traceEventSession.Source.Kernel.ProcessStart += this._bcon.ProcessCreation;
+            this._traceEventSession.Source.Kernel.ProcessStop += this._bcon.ProcessTerminate;
 #else
             this._traceEventSession.Source.Kernel.ProcessStart += this._bcon.ProcessCreate;
             this._traceEventSession.Source.Kernel.ProcessStop += this._bcon.ProcessTerminate;

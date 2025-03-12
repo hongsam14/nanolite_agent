@@ -86,39 +86,31 @@ namespace Nanolite_agent.Beacon
                 };
 
                 // initialize traceProvider with OtlpTraceExporter & BatchActivityExportProcessor
-                using (OtlpTraceExporter traceExporter = new OtlpTraceExporter(option))
-                {
-                    using (BatchActivityExportProcessor traceProcessor = new BatchActivityExportProcessor(traceExporter))
-                    {
-                        this.tracerProvider = Sdk.CreateTracerProviderBuilder()
-                            .SetResourceBuilder(ResourceBuilder.CreateDefault()
-                            .AddService(serviceName))
-                            .AddSource(serviceName)
-                            .AddProcessor(traceProcessor)
-                            .Build();
-                    }
-                }
+                OtlpTraceExporter traceExporter = new OtlpTraceExporter(option);
+                BatchActivityExportProcessor traceProcessor = new BatchActivityExportProcessor(traceExporter);
+                this.tracerProvider = Sdk.CreateTracerProviderBuilder()
+                    .SetResourceBuilder(ResourceBuilder.CreateDefault()
+                    .AddService(serviceName))
+                    .AddSource(serviceName)
+                    .AddProcessor(traceProcessor)
+                    .Build();
 
                 // initialize log Exporter with OtlpLogExporter & BatchLogExportProcessor
-                using (OtlpLogExporter logExporter = new OtlpLogExporter(option))
-                {
-                    using (BatchLogRecordExportProcessor logProcessor = new BatchLogRecordExportProcessor(logExporter))
+                OtlpLogExporter logExporter = new OtlpLogExporter(option);
+                BatchLogRecordExportProcessor logProcessor = new BatchLogRecordExportProcessor(logExporter);
+                // TODO: Add custom logger -> OpenTelemetry.Logs
+                this.host = Host.CreateDefaultBuilder()
+                    .ConfigureServices((_, services) =>
                     {
-                        // TODO: Add custom logger -> OpenTelemetry.Logs
-                        this.host = Host.CreateDefaultBuilder()
-                            .ConfigureServices((_, services) =>
+                        services.AddLogging(loggingBuilder =>
+                        {
+                            loggingBuilder.AddOpenTelemetry(options =>
                             {
-                                services.AddLogging(loggingBuilder =>
-                                {
-                                    loggingBuilder.AddOpenTelemetry(options =>
-                                    {
-                                        options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName))
-                                            .AddProcessor(logProcessor);
-                                    });
-                                });
-                            }).Build();
-                    }
-                }
+                                options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName))
+                                    .AddProcessor(logProcessor);
+                            });
+                        });
+                    }).Build();
             }
             catch (Exception e)
             {
