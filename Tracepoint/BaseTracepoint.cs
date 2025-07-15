@@ -1,18 +1,38 @@
-﻿// <copyright file="Event.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
+﻿// <copyright file="BaseTracepoint.cs" company="Hongsam14">
+// Copyright (c) Hongsam14. All rights reserved.
 // </copyright>
 
 namespace Nanolite_agent.Tracepoint
 {
+    using System;
     using System.Linq;
     using System.Text.RegularExpressions;
     using Microsoft.Diagnostics.Tracing;
     using Newtonsoft.Json.Linq;
 
+    public enum SysEventCode
+    {
+        UNKNOWN = -1,
+        PROCESS_CREATION = 0,
+        PROCESS_ACCESS,
+        PROCESS_TERMINATED,
+        NETWORK_CONNECTION,
+        DNS_QUERY,
+        DRIVER_LOAD,
+        IMAGE_LOAD,
+        FILE_EVENT,
+        CREATE_STREAM_HASH,
+        FILE_DELETE,
+        REGISTRY_ADD,
+        REGISTRY_DELETE,
+        REGISTRY_SET,
+        REGISTRY_RENAME
+    }
+
     /// <summary>
     /// Super class of Syslog Event log.
     /// </summary>
-    public partial class Syslog
+    public partial class BaseTracepoint
     {
         /// <summary>
         /// Delegate of PreFilter for Event log.
@@ -46,11 +66,6 @@ namespace Nanolite_agent.Tracepoint
         /// <returns>filter result.</returns>
         public delegate bool PostFilter(JObject logData);
 
-        /// <summary>
-        /// Gets EventID is the ID of the Syslog Event.
-        /// </summary>
-        /// <value>Property <c>EventID</c> represents ID of the Event.</value>
-        public int EventID { get; }
 
         /// <summary>
         /// Gets or Sets FilterFunc is the Delegate Chain of preFilter of the Event.
@@ -65,9 +80,15 @@ namespace Nanolite_agent.Tracepoint
         public PostFilter PostFilterFunc { get; protected set; }
 
         /// <summary>
-        /// Gets ProcessID is the Process ID of the Syslog Event.
+        /// Gets source of the event.
+        /// </summary>
+        /// <value>Property <c>Source</c> represents source of the event. </value>
+        public string Source { get; protected set; }
+
+        /// <summary>
+        /// Gets AgentProcessID is the Process ID of the Agent's ProcessID.
         /// <value>Property <c>ProcessID</c> represents Process ID of the Agent.</value>
-        public int ProcessID { get; private set; }
+        public int AgentProcessID { get; private set; }
 
         /// <summary>
         /// Gets or Sets Regex for filtering UserName.
@@ -83,16 +104,16 @@ namespace Nanolite_agent.Tracepoint
     /// <summary>
     /// Super class of Syslog Event log.
     /// </summary>
-    public partial class Syslog
+    public partial class BaseTracepoint
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Syslog"/> class.
+        /// Initializes a new instance of the <see cref="BaseTracepoint"/> class.
         /// </summary>
-        /// <param name="eventID">Syslog Event Id in ETW provider.</param>
-        public Syslog(int eventID)
+        /// <param name="source">Syslog source in tracepoint.</param>
+        public BaseTracepoint(string source)
         {
-            this.EventID = eventID;
-            this.ProcessID = SelfInfo.PID;
+            this.Source = source;
+            this.AgentProcessID = SelfInfo.PID;
 
             // Regex for filtering
             this.UserNameRegex = new Regex(@"^*\\SYSTEM");
@@ -104,75 +125,6 @@ namespace Nanolite_agent.Tracepoint
 
             // Default PostFilter
             this.PostFilterFunc += this.FilterByMySelf;
-        }
-
-        /// <summary>
-        /// This Filter function filters out the Agent itself by Process ID.
-        /// </summary>
-        /// <param name="traceData">Syslog from ETW Provider.</param>
-        /// <returns>result of filtering.</returns>
-        public bool FilterByMySelfPID(object traceData)
-        {
-            TraceEvent realData = (TraceEvent)traceData;
-            if (realData.ProcessID == SelfInfo.PID)
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// This Filter function filters out the System Processor by Process ID.
-        /// </summary>
-        /// <param name="traceData">ProcessTraceData specified by Microsoft.Diagnostics.Tracing.</param>
-        /// <returns>result of filtering.</returns>
-        private bool FilterBySystemProcessor(object traceData)
-        {
-            TraceEvent realData = (TraceEvent)traceData;
-
-            // filter out System Processor
-            if (realData.ProcessID == 4)
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// This Filter function filters out the System Processor by UserName.
-        /// </summary>
-        /// <param name="logData">ProcessTraceData specified by Microsoft.Diagnostics.Tracing.</param>
-        /// <returns>result of filtering.</returns>
-        private bool FilterByUserName(JObject logData)
-        {
-            if (logData.ContainsKey("User") && this.UserNameRegex.IsMatch(logData["User"]?.ToString())) // System Processor
-            {
-                return false;
-            }
-
-            if (logData.ContainsKey("SourceUser") && this.UserNameRegex.IsMatch(logData["SourceUser"]?.ToString())) // System Processor
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        private bool FilterByMySelf(JObject logData)
-        {
-            if (logData.ContainsKey("Image") && this.MyselfRegex.IsMatch(logData["Image"]?.ToString())) // Related with agent
-            {
-                return false;
-            }
-
-            if (logData.ContainsKey("SourceImage") && this.MyselfRegex.IsMatch(logData["SourceImage"]?.ToString())) // Related with agent
-            {
-                return false;
-            }
-
-            return true;
         }
 
         /// <summary>
@@ -227,20 +179,99 @@ namespace Nanolite_agent.Tracepoint
         /// </summary>
         /// <param name="data">trace data specified by Microsoft.Diagnotics.Tracing</param>
         /// <returns>returns log formatted in json</returns>
-        public virtual JObject EventLog(TraceEvent data)
+        public virtual JObject EventLog(SysEventCode eventCode, TraceEvent data)
         {
-            //CommonEventHeader? commonEventHeader = CommonEventHeader.GetCommonEventHeader(data.ProcessID);
+            // check argument is not null
+            if (data == null)
+            {
+                throw new ArgumentNullException("data");
+            }
+
             JObject jsonLog = new JObject(
-                new JProperty("EventID", data.ID),
-                new JProperty("EventName", data.EventName),
-                new JProperty("UsermodePid", data.ProcessID),
+                new JProperty("EventID", eventCode),
+                new JProperty("EventName", eventCode.ToString().ToLower()),
+                new JProperty("Source", this.Source),
                 new JProperty("TimeStamp", data.TimeStamp));
-                //new JProperty("Opcode", data.Opcode)
-                //new JProperty("user", commonEventHeader?.userName ?? "NOT_REACHABLE"),
-                //new JProperty("image", commonEventHeader?.image ?? "NOT_REACHABLE"),
-                //new JProperty("TaskGuid", data.TaskGuid),
-                //new JProperty("workingDirectory", commonEventHeader?.workingDirectory ?? "NOT_REACHABLE"),
             return jsonLog;
+        }
+
+        /// <summary>
+        /// This Filter function filters out the Agent itself by Process ID.
+        /// </summary>
+        /// <param name="traceData">Syslog from ETW Provider.</param>
+        /// <returns>result of filtering.</returns>
+        private bool FilterByMySelfPID(object traceData)
+        {
+            if (traceData == null)
+            {
+                throw new ArgumentNullException(paramName: "traceDatl");
+            }
+
+            TraceEvent realData = (TraceEvent)traceData;
+            if (realData.ProcessID == SelfInfo.PID)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// This Filter function filters out the System Processor by Process ID.
+        /// </summary>
+        /// <param name="traceData">ProcessTraceData specified by Microsoft.Diagnostics.Tracing.</param>
+        /// <returns>result of filtering.</returns>
+        private bool FilterBySystemProcessor(object traceData)
+        {
+            if (traceData == null)
+            {
+                throw new ArgumentNullException(paramName: "traceData");
+            }
+
+            TraceEvent realData = (TraceEvent)traceData;
+
+            // filter out System Processor
+            if (realData.ProcessID == 4)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// This Filter function filters out the System Processor by UserName.
+        /// </summary>
+        /// <param name="logData">ProcessTraceData specified by Microsoft.Diagnostics.Tracing.</param>
+        /// <returns>result of filtering.</returns>
+        private bool FilterByUserName(JObject logData)
+        {
+            if (logData.ContainsKey("User") && this.UserNameRegex.IsMatch(logData["User"]?.ToString())) // System Processor
+            {
+                return false;
+            }
+
+            if (logData.ContainsKey("SourceUser") && this.UserNameRegex.IsMatch(logData["SourceUser"]?.ToString())) // System Processor
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool FilterByMySelf(JObject logData)
+        {
+            if (logData.ContainsKey("Image") && this.MyselfRegex.IsMatch(logData["Image"]?.ToString())) // Related with agent
+            {
+                return false;
+            }
+
+            if (logData.ContainsKey("SourceImage") && this.MyselfRegex.IsMatch(logData["SourceImage"]?.ToString())) // Related with agent
+            {
+                return false;
+            }
+
+            return true;
         }
     }
 }
