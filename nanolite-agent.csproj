@@ -423,24 +423,17 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Beacon\Beacon.cs" />
-    <Compile Include="Beacon\KafkaBatchExportProcessor.cs" />
-    <Compile Include="Beacon\KafkaTraceExporter.cs" />
-    <Compile Include="Beacon\TracerProviderBuilderExtensions.cs" />
     <Compile Include="Config\Config.cs" />
     <Compile Include="Config\ConfigWrapper.cs" />
     <Compile Include="EventSession\IEventSession.cs" />
-    <Compile Include="EventSession\NetworkEventSession.cs" />
-    <Compile Include="EventSession\ProcessEventSession.cs" />
+    <Compile Include="EventSession\SysmonEventSession.cs" />
     <Compile Include="NanoException\BeaconException.cs" />
     <Compile Include="NanoException\ConfigException.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SelfInfo.cs" />
-    <Compile Include="Tracepoint\NetworkCreate.cs" />
-    <Compile Include="Tracepoint\NetworkDisconnect.cs" />
-    <Compile Include="Tracepoint\ProcessTerminate.cs" />
-    <Compile Include="Tracepoint\Syslog.cs" />
-    <Compile Include="Tracepoint\ProcessCreate.cs" />
+    <Compile Include="Tracepoint\BaseTracepoint.cs" />
+    <Compile Include="Tracepoint\Sysmon.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
