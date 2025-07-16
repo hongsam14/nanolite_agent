@@ -37,28 +37,24 @@ namespace Nanolite_agent
 #endif
 
             // Init Beacon
-            Beacon.Beacon bcon = new Beacon.Beacon(config);
+            //Beacon.Beacon bcon = new Beacon.Beacon(config);
 
             // Initialize the ETW session
-            EventSession.ProcessEventSession procEventSession = new EventSession.ProcessEventSession(bcon);
-            EventSession.NetworkEventSession netEventSession = new EventSession.NetworkEventSession(bcon);
+            EventSession.SysmonEventSession sysmonSession = new EventSession.SysmonEventSession();
 
             // Ctrl + C add event
             Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)
             {
-                netEventSession.StopSession();
-                procEventSession.StopSession();
-                bcon.Stop();
+                sysmonSession.StopSession();
+                //bcon.Stop();
             };
 
 
             // Start Session
-            procEventSession.StartSession();
-            netEventSession.StartSession();
+            sysmonSession.StartSession();
 
             // Wait Session.
-            procEventSession.WaitSession();
-            netEventSession.WaitSession();
+            sysmonSession.WaitSession();
 
             Console.WriteLine(value: "Program terminated. Press any button");
             Console.ReadKey();
