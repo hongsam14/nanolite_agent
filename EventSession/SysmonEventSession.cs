@@ -8,34 +8,34 @@ namespace Nanolite_agent.EventSession
     using System.Threading.Tasks;
     using Microsoft.Diagnostics.Tracing;
     using Microsoft.Diagnostics.Tracing.Parsers;
-    using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
     using Microsoft.Diagnostics.Tracing.Session;
     using Nanolite_agent.Beacon;
     using Nanolite_agent.Tracepoint;
+    using Newtonsoft.Json.Linq;
 
-    public sealed class ProcessEventSession : IEventSession
+    public sealed class SysmonEventSession : IEventSession
     {
-        public readonly string SessionName = "nanolite_process_session";
+        public readonly string SessionName = "Microsoft-Windows-Sysmon";
+        public readonly string providerGUID = "5770385f-c22a-43e0-bf4c-06f5698ffbd9";
 
         private readonly TraceEventSession _traceEventSession;
-        private readonly ProcessCreate _processCreate;
+        private readonly Sysmon _sysmonTracepoint;
         private readonly Beacon _bcon;
         private Task _sessionTask;
 
-        public ProcessEventSession(Beacon bcon)
+        public SysmonEventSession()
         {
             this._traceEventSession = new TraceEventSession(SessionName)
             {
                 StopOnDispose = true,
                 BufferSizeMB = 1024
             };
-            this._bcon = bcon;
 
             this._sessionTask = null;
 
-            this._processCreate = new Tracepoint.ProcessCreate();
+            this._sysmonTracepoint = new Tracepoint.Sysmon();
             // add privider to etw
-            subscribeProvider();
+            SubscribeProvider();
             registerCallback();
         }
 
@@ -56,50 +56,39 @@ namespace Nanolite_agent.EventSession
         public void WaitSession()
         {
             if (this._sessionTask == null)
+            {
                 throw new NullReferenceException("sessonTask is not running. Call StartSession before calling WaitSession");
+            }
+
             this._sessionTask.Wait();
         }
 
-        private void subscribeProvider()
+        private void SubscribeProvider()
         {
-            this._traceEventSession.EnableKernelProvider(
-                // Event 1: kernel_process_creation
-                KernelTraceEventParser.Keywords.Process
-                );
-            //this._traceEventSession.EnableKernelProvider(new Guid("{22FB2CD6-0E7B-422B-A0C7-2FAD1FD0E716}"),
-            //    TraceEventLevel.Always,
-            //    (ulong)(0x0000000000000010 | // WINEVENT_KEYWORD_PROCESS
-            //    0x0000000000000020 // WINEVENT_KEYWORD_THREAD
-            //    ));
+            this._traceEventSession.EnableProvider(this.providerGUID);
         }
 
         private void registerCallback()
         {
 #if DEBUG
-            //this._traceEventSession.Source.Kernel.ProcessStart += this.debugFunc;
-            //this._traceEventSession.Source.Kernel.ProcessStop += this.debugFunc;
-            this._traceEventSession.Source.Kernel.ProcessStart += this._bcon.ProcessCreation;
-            this._traceEventSession.Source.Kernel.ProcessStop += this._bcon.ProcessTerminate;
+            //this._traceEventSession.Source.Dynamic.All += this.debugFunc;
+            this._traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.SessionName, "ProcessCreate(rule:ProcessCreate)", this.debugFunc);
 #else
             this._traceEventSession.Source.Kernel.ProcessStart += this._bcon.ProcessCreate;
             this._traceEventSession.Source.Kernel.ProcessStop += this._bcon.ProcessTerminate;
 #endif
-            //this._traceEventSession.Source.Kernel.AddCallbackForProviderEvent(
-            //    "Microsoft-Windows-Kernel-Process",
-            //    "ProcessStart",
-            //    this.debugFunc
-            //    );
         }
 
         private void debugFunc(TraceEvent data)
         {
-            Console.WriteLine("--------------------");
-            Console.WriteLine($"{data.EventName}: {data.ProviderName}");
-            for (int i = 0; i < data.PayloadNames.Length; i++)
+            JObject log = this._sysmonTracepoint.GetSysmonLog(data);
+            if (log == null)
             {
-                Console.WriteLine(data.PayloadNames[i]);
+                return;
             }
-            Console.WriteLine("--------------------");
+
+            // print log
+            Console.WriteLine(log.ToString(Newtonsoft.Json.Formatting.None));
         }
     }
 }
