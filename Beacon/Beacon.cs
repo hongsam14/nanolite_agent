@@ -35,10 +35,7 @@ namespace Nanolite_agent.Beacon
         private readonly Dictionary<long, Activity> processSpan;
         private readonly Dictionary<string, Activity> tcpIpv4Span;
 
-        private readonly Tracepoint.ProcessCreate processCreateLog;
-        private readonly Tracepoint.ProcessTerminate processTerminateLog;
-        private readonly Tracepoint.NetworkCreate networkCreate;
-        private readonly Tracepoint.NetworkDisconnect networkDisconnect;
+        //private readonly Tracepoint.NetworkDisconnect networkDisconnect;
 
         private readonly Config config;
         private bool isRunning;
@@ -134,10 +131,10 @@ namespace Nanolite_agent.Beacon
             this.processSpan = new Dictionary<long, Activity>();
             this.tcpIpv4Span = new Dictionary<string, Activity>();
 
-            this.processCreateLog = new Tracepoint.ProcessCreate();
-            this.processTerminateLog = new Tracepoint.ProcessTerminate();
-            this.networkCreate = new Tracepoint.NetworkCreate();
-            this.networkDisconnect = new Tracepoint.NetworkDisconnect();
+            //this.processCreateLog = new Tracepoint.ProcessCreate();
+            //this.processTerminateLog = new Tracepoint.ProcessTerminate();
+            //this.networkCreate = new Tracepoint.NetworkCreate();
+            //this.networkDisconnect = new Tracepoint.NetworkDisconnect();
 
             // set running flag
             this.isRunning = true;
@@ -176,319 +173,319 @@ namespace Nanolite_agent.Beacon
 
         public void ProcessCreation(ProcessTraceData traceData)
         {
-            Activity pSpan = null;
-            Activity span = null;
-            ActivityContext spanContext;
-            ActivityKind activityKind;
-            JObject log = null;
-            ulong? gid = null;
-            long? pid = null;
-            long? ppid = null;
-            string image;
+            //Activity pSpan = null;
+            //Activity span = null;
+            //ActivityContext spanContext;
+            //ActivityKind activityKind;
+            //JObject log = null;
+            //ulong? gid = null;
+            //long? pid = null;
+            //long? ppid = null;
+            //string image;
 
-            log = this.processCreateLog.EventLog(traceData);
-            if (log == null)
-            {
-                // filtered
-                return;
-            }
+            //log = this.processCreateLog.EventLog(traceData);
+            //if (log == null)
+            //{
+            //    // filtered
+            //    return;
+            //}
 
-            pid = log.GetValue("ProcessID")?.ToObject<long>();
-            ppid = log.GetValue("ParentID")?.ToObject<long>();
-            gid = log.GetValue("UniqueProcessKey")?.ToObject<ulong>();
-            image = this.GetImage(pid.Value) ?? log.GetValue("ImageFileName")?.ToString();
+            //pid = log.GetValue("ProcessID")?.ToObject<long>();
+            //ppid = log.GetValue("ParentID")?.ToObject<long>();
+            //gid = log.GetValue("UniqueProcessKey")?.ToObject<ulong>();
+            //image = this.GetImage(pid.Value) ?? log.GetValue("ImageFileName")?.ToString();
 
-            // check parent id
-            if (this.processSpan.ContainsKey(ppid.Value))
-            {
-                // generate sub span
-                pSpan = this.processSpan[ppid.Value];
-                spanContext = pSpan.Context;
-                activityKind = ActivityKind.Internal;
-            }
-            else
-            {
-                // there is no context. so create new Root Span context.
-                spanContext = new ActivityContext(ActivityTraceId.CreateRandom(), ActivitySpanId.CreateRandom(), ActivityTraceFlags.Recorded);
-                activityKind = ActivityKind.Internal;
-            }
+            //// check parent id
+            //if (this.processSpan.ContainsKey(ppid.Value))
+            //{
+            //    // generate sub span
+            //    pSpan = this.processSpan[ppid.Value];
+            //    spanContext = pSpan.Context;
+            //    activityKind = ActivityKind.Internal;
+            //}
+            //else
+            //{
+            //    // there is no context. so create new Root Span context.
+            //    spanContext = new ActivityContext(ActivityTraceId.CreateRandom(), ActivitySpanId.CreateRandom(), ActivityTraceFlags.Recorded);
+            //    activityKind = ActivityKind.Internal;
+            //}
 
-            span = this.spanSource.CreateActivity(image, activityKind, spanContext);
+            //span = this.spanSource.CreateActivity(image, activityKind, spanContext);
 
-            // start pid span
-            if (span == null)
-            {
-                throw new NanoException.BeaconException("Failed to create new span");
-            }
+            //// start pid span
+            //if (span == null)
+            //{
+            //    throw new NanoException.BeaconException("Failed to create new span");
+            //}
 
-            span.SetTag("logsource.product", "windows");
-            span.SetTag("process.image", image);
+            //span.SetTag("logsource.product", "windows");
+            //span.SetTag("process.image", image);
 
 
-            span.Start();
-            span.AddEvent(new ActivityEvent(log.ToString()));
+            //span.Start();
+            //span.AddEvent(new ActivityEvent(log.ToString()));
 
-            Console.WriteLine(log.ToString());
+            //Console.WriteLine(log.ToString());
 
-            // For test
-            span.SetStatus(ActivityStatusCode.Ok);
+            //// For test
+            //span.SetStatus(ActivityStatusCode.Ok);
 
-            // add span to processSpan
-            this.processSpan[pid.Value] = span;
+            //// add span to processSpan
+            //this.processSpan[pid.Value] = span;
         }
 
         public void ProcessTerminate(ProcessTraceData traceData)
         {
-            Activity pSpan = null;
-            Activity span = null;
-            JObject log = null;
-            long? pid = null;
-            long? ppid = null;
-            string image;
+            //Activity pSpan = null;
+            //Activity span = null;
+            //JObject log = null;
+            //long? pid = null;
+            //long? ppid = null;
+            //string image;
 
 
-            log = this.processTerminateLog.EventLog(traceData);
-            if (log == null)
-            {
-                // filtered
-                return;
-            }
+            //log = this.processTerminateLog.EventLog(traceData);
+            //if (log == null)
+            //{
+            //    // filtered
+            //    return;
+            //}
 
-            pid = log.GetValue("ProcessID")?.ToObject<long>();
-            ppid = log.GetValue("ParentID")?.ToObject<long>();
-            image = log.GetValue("ImageFileName")?.ToString();
+            //pid = log.GetValue("ProcessID")?.ToObject<long>();
+            //ppid = log.GetValue("ParentID")?.ToObject<long>();
+            //image = log.GetValue("ImageFileName")?.ToString();
 
-            if (ppid.HasValue && this.processSpan.ContainsKey(ppid.Value))
-            {
-                // parent pid is exists. activate parent span
-                pSpan = this.processSpan[ppid.Value];
-            }
+            //if (ppid.HasValue && this.processSpan.ContainsKey(ppid.Value))
+            //{
+            //    // parent pid is exists. activate parent span
+            //    pSpan = this.processSpan[ppid.Value];
+            //}
 
-            // stop pid span
-            if (pid.HasValue && this.processSpan.ContainsKey(pid.Value))
-            {
-                span = this.processSpan[pid.Value];
-                span.AddEvent(new ActivityEvent(log.ToString()));
-                //span.SetStatus(ActivityStatusCode.Ok);
-                span.Stop();
+            //// stop pid span
+            //if (pid.HasValue && this.processSpan.ContainsKey(pid.Value))
+            //{
+            //    span = this.processSpan[pid.Value];
+            //    span.AddEvent(new ActivityEvent(log.ToString()));
+            //    //span.SetStatus(ActivityStatusCode.Ok);
+            //    span.Stop();
 
-                this.processSpan.Remove(pid.Value);
-            }
+            //    this.processSpan.Remove(pid.Value);
+            //}
 
-            Console.WriteLine(log.ToString());
+            //Console.WriteLine(log.ToString());
         }
 
         public void TcpIpConnect(TcpIpConnectTraceData traceData)
         {
-            Activity pSpan = null;
-            Activity span = null;
-            ActivityContext spanContext;
-            ActivityKind activityKind;
-            JObject log = null;
-            long? pid = null;
-            string image;
-            string daddr;
-            string saddr;
-            string dport;
-            string sport;
-            string dAddress;
-            string sAddress;
+            //Activity pSpan = null;
+            //Activity span = null;
+            //ActivityContext spanContext;
+            //ActivityKind activityKind;
+            //JObject log = null;
+            //long? pid = null;
+            //string image;
+            //string daddr;
+            //string saddr;
+            //string dport;
+            //string sport;
+            //string dAddress;
+            //string sAddress;
 
-            log = this.networkCreate.EventLog(traceData);
-            if (log == null)
-            {
-                // filtered
-                return;
-            }
+            //log = this.networkCreate.EventLog(traceData);
+            //if (log == null)
+            //{
+            //    // filtered
+            //    return;
+            //}
 
-            pid = log.GetValue("UsermodePid")?.ToObject<long>();
-            image = this.GetImage(pid.Value) ?? log.GetValue("ImageFileName")?.ToString();
-            daddr = log.GetValue("daddr")?.ToString();
-            saddr = log.GetValue("saddr")?.ToString();
-            dport = log.GetValue("dport")?.ToString();
-            sport = log.GetValue("sport")?.ToString();
-            dAddress = $"{daddr}:{dport}";
-            sAddress = $"{saddr}:{sport}";
+            //pid = log.GetValue("UsermodePid")?.ToObject<long>();
+            //image = this.GetImage(pid.Value) ?? log.GetValue("ImageFileName")?.ToString();
+            //daddr = log.GetValue("daddr")?.ToString();
+            //saddr = log.GetValue("saddr")?.ToString();
+            //dport = log.GetValue("dport")?.ToString();
+            //sport = log.GetValue("sport")?.ToString();
+            //dAddress = $"{daddr}:{dport}";
+            //sAddress = $"{saddr}:{sport}";
 
-            // check parent id
-            if (this.processSpan.ContainsKey(pid.Value))
-            {
-                // generate sub span
-                pSpan = this.processSpan[pid.Value];
-                spanContext = pSpan.Context;
-                activityKind = ActivityKind.Internal;
-            }
-            else
-            {
-                // there is no context. so create new Root Span context.
-                spanContext = new ActivityContext(ActivityTraceId.CreateRandom(), ActivitySpanId.CreateRandom(), ActivityTraceFlags.Recorded);
-                activityKind = ActivityKind.Internal;
-                pSpan = this.spanSource.CreateActivity(image, activityKind, spanContext);
-                pSpan.SetTag("logsource.product", "windows");
-                pSpan.SetTag("process.image", image);
-                pSpan.SetTag("process.type", "background");
+            //// check parent id
+            //if (this.processSpan.ContainsKey(pid.Value))
+            //{
+            //    // generate sub span
+            //    pSpan = this.processSpan[pid.Value];
+            //    spanContext = pSpan.Context;
+            //    activityKind = ActivityKind.Internal;
+            //}
+            //else
+            //{
+            //    // there is no context. so create new Root Span context.
+            //    spanContext = new ActivityContext(ActivityTraceId.CreateRandom(), ActivitySpanId.CreateRandom(), ActivityTraceFlags.Recorded);
+            //    activityKind = ActivityKind.Internal;
+            //    pSpan = this.spanSource.CreateActivity(image, activityKind, spanContext);
+            //    pSpan.SetTag("logsource.product", "windows");
+            //    pSpan.SetTag("process.image", image);
+            //    pSpan.SetTag("process.type", "background");
 
-                pSpan.Start();
-                pSpan.Stop();
+            //    pSpan.Start();
+            //    pSpan.Stop();
 
-                this.processSpan[pid.Value] = pSpan;
-                spanContext = pSpan.Context;
-            }
+            //    this.processSpan[pid.Value] = pSpan;
+            //    spanContext = pSpan.Context;
+            //}
 
-            span = this.spanSource.CreateActivity($"{sAddress}->{dAddress}", activityKind, spanContext);
+            //span = this.spanSource.CreateActivity($"{sAddress}->{dAddress}", activityKind, spanContext);
 
-            // start pid span
-            if (span == null)
-            {
-                throw new NanoException.BeaconException("Failed to create new span");
-            }
+            //// start pid span
+            //if (span == null)
+            //{
+            //    throw new NanoException.BeaconException("Failed to create new span");
+            //}
 
-            span.SetTag("logsource.product", "windows");
-            span.SetTag("process.image", image);
-            span.SetTag("network.protocol", "TcpIpv4");
-            span.SetTag("network.destination", dAddress);
-            span.SetTag("network.source", $"{saddr}:{sport}");
+            //span.SetTag("logsource.product", "windows");
+            //span.SetTag("process.image", image);
+            //span.SetTag("network.protocol", "TcpIpv4");
+            //span.SetTag("network.destination", dAddress);
+            //span.SetTag("network.source", $"{saddr}:{sport}");
 
 
-            span.Start();
-            span.AddEvent(new ActivityEvent(log.ToString()));
+            //span.Start();
+            //span.AddEvent(new ActivityEvent(log.ToString()));
 
-            Console.WriteLine(log.ToString());
+            //Console.WriteLine(log.ToString());
 
-            // For test
-            span.SetStatus(ActivityStatusCode.Ok);
+            //// For test
+            //span.SetStatus(ActivityStatusCode.Ok);
 
-            // add span to tcpipv4Span
-            this.tcpIpv4Span[$"{sAddress}->{dAddress}"] = span;
+            //// add span to tcpipv4Span
+            //this.tcpIpv4Span[$"{sAddress}->{dAddress}"] = span;
         }
 
         public void TcpIpDisconnect(TcpIpTraceData traceData)
         {
-            Activity span = null;
-            JObject log = null;
-            string daddr;
-            string dport;
-            string saddr;
-            string sport;
-            string dAddress;
-            string sAddress;
+            //Activity span = null;
+            //JObject log = null;
+            //string daddr;
+            //string dport;
+            //string saddr;
+            //string sport;
+            //string dAddress;
+            //string sAddress;
 
 
-            log = this.networkDisconnect.EventLog(traceData);
-            if (log == null)
-            {
-                // filtered
-                return;
-            }
+            //log = this.networkDisconnect.EventLog(traceData);
+            //if (log == null)
+            //{
+            //    // filtered
+            //    return;
+            //}
 
-            daddr = log.GetValue("daddr")?.ToString();
-            saddr = log.GetValue("saddr")?.ToString();
-            dport = log.GetValue("dport")?.ToString();
-            sport = log.GetValue("sport")?.ToString();
-            dAddress = $"{daddr}:{dport}";
-            sAddress = $"{saddr}:{sport}";
+            //daddr = log.GetValue("daddr")?.ToString();
+            //saddr = log.GetValue("saddr")?.ToString();
+            //dport = log.GetValue("dport")?.ToString();
+            //sport = log.GetValue("sport")?.ToString();
+            //dAddress = $"{daddr}:{dport}";
+            //sAddress = $"{saddr}:{sport}";
 
-            string key = $"{sAddress}->{dAddress}";
+            //string key = $"{sAddress}->{dAddress}";
 
-            if (this.tcpIpv4Span.ContainsKey(key))
-            {
-                // connection is exists. activate parent span
-                span = this.tcpIpv4Span[key];
+            //if (this.tcpIpv4Span.ContainsKey(key))
+            //{
+            //    // connection is exists. activate parent span
+            //    span = this.tcpIpv4Span[key];
 
-                span.AddEvent(new ActivityEvent(log.ToString()));
+            //    span.AddEvent(new ActivityEvent(log.ToString()));
 
-                span.Stop();
+            //    span.Stop();
 
-                this.tcpIpv4Span.Remove(key);
-            }
+            //    this.tcpIpv4Span.Remove(key);
+            //}
 
-            Console.WriteLine(log.ToString());
+            //Console.WriteLine(log.ToString());
         }
 
         public void TcpIpSend(TcpIpSendTraceData traceData)
         {
-            Activity span = null;
-            ActivityContext spanContext;
-            ActivityKind activityKind;
-            JObject log = null;
-            long? pid = null;
-            string image;
-            string daddr;
-            string dport;
-            string saddr;
-            string sport;
-            string dAddress;
-            string sAddress;
-            string key;
+            //Activity span = null;
+            //ActivityContext spanContext;
+            //ActivityKind activityKind;
+            //JObject log = null;
+            //long? pid = null;
+            //string image;
+            //string daddr;
+            //string dport;
+            //string saddr;
+            //string sport;
+            //string dAddress;
+            //string sAddress;
+            //string key;
 
-            log = this.processCreateLog.EventLog(traceData);
-            if (log == null)
-            {
-                // filtered
-                return;
-            }
+            //log = this.processCreateLog.EventLog(traceData);
+            //if (log == null)
+            //{
+            //    // filtered
+            //    return;
+            //}
 
-            pid = log.GetValue("UsermodePid")?.ToObject<long>();
-            image = this.GetImage(pid.Value) ?? log.GetValue("ImageFileName")?.ToString();
-            daddr = log.GetValue("daddr")?.ToString();
-            saddr = log.GetValue("saddr")?.ToString();
-            dport = log.GetValue("dport")?.ToString();
-            sport = log.GetValue("sport")?.ToString();
-            dAddress = $"{daddr}:{dport}";
-            sAddress = $"{saddr}:{sport}";
+            //pid = log.GetValue("UsermodePid")?.ToObject<long>();
+            //image = this.GetImage(pid.Value) ?? log.GetValue("ImageFileName")?.ToString();
+            //daddr = log.GetValue("daddr")?.ToString();
+            //saddr = log.GetValue("saddr")?.ToString();
+            //dport = log.GetValue("dport")?.ToString();
+            //sport = log.GetValue("sport")?.ToString();
+            //dAddress = $"{daddr}:{dport}";
+            //sAddress = $"{saddr}:{sport}";
 
-            key = $"{sAddress}->{dAddress}";
+            //key = $"{sAddress}->{dAddress}";
 
-            // check parent span
-            if (this.tcpIpv4Span.ContainsKey(key))
-            {
-                // append event log to span
-                span = this.tcpIpv4Span[key];
-                span.AddEvent(new ActivityEvent(log.ToString()));
-            }
+            //// check parent span
+            //if (this.tcpIpv4Span.ContainsKey(key))
+            //{
+            //    // append event log to span
+            //    span = this.tcpIpv4Span[key];
+            //    span.AddEvent(new ActivityEvent(log.ToString()));
+            //}
         }
 
         public void TcpIpRecv(TcpIpTraceData traceData)
         {
-            Activity span = null;
-            ActivityContext spanContext;
-            ActivityKind activityKind;
-            JObject log = null;
-            long? pid = null;
-            string image;
-            string daddr;
-            string dport;
-            string saddr;
-            string sport;
-            string dAddress;
-            string sAddress;
-            string key;
+            //    Activity span = null;
+            //    ActivityContext spanContext;
+            //    ActivityKind activityKind;
+            //    JObject log = null;
+            //    long? pid = null;
+            //    string image;
+            //    string daddr;
+            //    string dport;
+            //    string saddr;
+            //    string sport;
+            //    string dAddress;
+            //    string sAddress;
+            //    string key;
 
-            log = this.processCreateLog.EventLog(traceData);
-            if (log == null)
-            {
-                // filtered
-                return;
-            }
+            //    log = this.processCreateLog.EventLog(traceData);
+            //    if (log == null)
+            //    {
+            //        // filtered
+            //        return;
+            //    }
 
-            pid = log.GetValue("UsermodePid")?.ToObject<long>();
-            image = this.GetImage(pid.Value) ?? log.GetValue("ImageFileName")?.ToString();
-            daddr = log.GetValue("daddr")?.ToString();
-            saddr = log.GetValue("saddr")?.ToString();
-            dport = log.GetValue("dport")?.ToString();
-            sport = log.GetValue("sport")?.ToString();
-            dAddress = $"{daddr}:{dport}";
-            sAddress = $"{saddr}:{sport}";
+            //    pid = log.GetValue("UsermodePid")?.ToObject<long>();
+            //    image = this.GetImage(pid.Value) ?? log.GetValue("ImageFileName")?.ToString();
+            //    daddr = log.GetValue("daddr")?.ToString();
+            //    saddr = log.GetValue("saddr")?.ToString();
+            //    dport = log.GetValue("dport")?.ToString();
+            //    sport = log.GetValue("sport")?.ToString();
+            //    dAddress = $"{daddr}:{dport}";
+            //    sAddress = $"{saddr}:{sport}";
 
-            key = $"{sAddress}->{dAddress}";
+            //    key = $"{sAddress}->{dAddress}";
 
-            // check parent span
-            if (this.tcpIpv4Span.ContainsKey(key))
-            {
-                // append event log to span
-                span = this.tcpIpv4Span[key];
-                span.AddEvent(new ActivityEvent(log.ToString()));
-            }
+            //    // check parent span
+            //    if (this.tcpIpv4Span.ContainsKey(key))
+            //    {
+            //        // append event log to span
+            //        span = this.tcpIpv4Span[key];
+            //        span.AddEvent(new ActivityEvent(log.ToString()));
+            //    }
         }
 
     }
