@@ -26,16 +26,11 @@ namespace Nanolite_agent.Beacon
 
     public class Beacon
     {
-        public readonly string BeaconName = "nanolite_beacon";
+        private readonly string beaconName = "nanolite_beacon";
 
         private readonly IHost host;
         private readonly TracerProvider tracerProvider;
         private readonly ActivitySource spanSource;
-
-        private readonly Dictionary<long, Activity> processSpan;
-        private readonly Dictionary<string, Activity> tcpIpv4Span;
-
-        //private readonly Tracepoint.NetworkDisconnect networkDisconnect;
 
         private readonly Config config;
         private bool isRunning;
@@ -46,40 +41,21 @@ namespace Nanolite_agent.Beacon
         /// <param name="config">config.yml file.</param>
         public Beacon(Nanolite_agent.Config.Config config)
         {
-#if !DEBUG
             if (config == null)
             {
                 throw new ArgumentNullException(nameof(config));
             }
 
-            if (config.CollectorIP == null || config.CollectorIP.Length == 0
-                || config.CollectorPort == null || config.CollectorPort.Length == 0)
-            {
-                throw new NanoException.ConfigException("invalid config. collector config is null");
-            }
             string serviceName = config.Exporter;
-#else
-            string serviceName = "TestBed";
             this.isRunning = false;
-#endif
 
             // init Otel traceProvider
             try
             {
                 OtlpExporterOptions option = new OtlpExporterOptions
                 {
-#if DEBUG
-                    Endpoint = new Uri($"http://localhost:4317"),
-#else
                     // check config is valid.
                     Endpoint = new Uri($"http://{config.CollectorIP}:{config.CollectorPort}"),
-                    if (config.Exporter == null || config.Exporter.Length == 0)
-                    {
-                        throw new NanoException.BeaconException(
-                            "error while construct beacon.",
-                            new NanoException.ConfigException("invalid config. exporter config is null"));
-                    }
-#endif
                 };
 
                 // initialize traceProvider with OtlpTraceExporter & BatchActivityExportProcessor
@@ -95,6 +71,7 @@ namespace Nanolite_agent.Beacon
                 // initialize log Exporter with OtlpLogExporter & BatchLogExportProcessor
                 OtlpLogExporter logExporter = new OtlpLogExporter(option);
                 BatchLogRecordExportProcessor logProcessor = new BatchLogRecordExportProcessor(logExporter);
+
                 // TODO: Add custom logger -> OpenTelemetry.Logs
                 this.host = Host.CreateDefaultBuilder()
                     .ConfigureServices((_, services) =>

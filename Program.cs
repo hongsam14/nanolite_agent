@@ -6,15 +6,20 @@ namespace Nanolite_agent
 {
     using System;
     using Microsoft.Diagnostics.Tracing.Session;
+    using Nanolite_agent.NanoException;
+    using nanolite_agent.Properties;
 
     internal class Program
     {
         private static void Main(string[] args)
         {
+            Config.Config config;
+            Beacon.Beacon bcon;
+
             // check if the program is running as an administrator
             if (!TraceEventSession.IsElevated() ?? false)
             {
-                Console.WriteLine(value: "Run as Administrator");
+                Console.WriteLine(value: DebugMessages.PrivilegeMessage);
                 return;
             }
 
@@ -22,11 +27,22 @@ namespace Nanolite_agent
             Console.WriteLine($"Self PID: {SelfInfo.PID} : ThreadId {SelfInfo.ThreadID}");
 
             // get config from config.yml
-            Config.Config config = null;
-#if !DEBUG
+            config = null;
             try
             {
-                config = new Nanolite_agent.Config.Config("config.yml");
+#if DEBUG
+                // init dummy config for debug
+                Config.ConfigWrapper dummyConfigWrapper = new Config.ConfigWrapper
+                {
+                    CollectorIP = "localhost",
+                    CollectorPort = "4317",
+                    Exporter = "TestBed",
+                };
+                config = new Config.Config(dummyConfigWrapper);
+#else
+                // get config file path from the current directory
+                config = Config.ConfigExtension.LoadConfigFromPath("config.yml");
+#endif
                 Console.WriteLine($"CollectorIP: {config.CollectorIP} : CollectorPort {config.CollectorPort} : Exporter {config.Exporter}");
             }
             catch (Exception e)
@@ -34,10 +50,9 @@ namespace Nanolite_agent
                 Console.WriteLine(e.Message);
                 return;
             }
-#endif
 
             // Init Beacon
-            //Beacon.Beacon bcon = new Beacon.Beacon(config);
+            bcon = new Beacon.Beacon(config);
 
 #if DEBUG
             // Initialize the ETW session
@@ -60,7 +75,7 @@ namespace Nanolite_agent
             // Wait Session.
             sysmonSession.WaitSession();
 
-            Console.WriteLine(value: "Program terminated. Press any button");
+            Console.WriteLine(value: DebugMessages.ExitMessage);
             Console.ReadKey();
         }
     }

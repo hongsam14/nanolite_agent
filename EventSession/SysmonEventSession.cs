@@ -106,6 +106,19 @@ namespace Nanolite_agent.EventSession
 #if DEBUG
             // print log
             Console.WriteLine(log.ToString(Newtonsoft.Json.Formatting.None));
+#else
+            // send log to Beacon
+            if (this.bcon != null)
+            {
+                try
+                {
+                    this.bcon.SendLog(log);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Error sending log: {e.Message}");
+                }
+            }
 #endif
         }
     }
