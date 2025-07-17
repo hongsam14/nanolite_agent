@@ -7,6 +7,7 @@ namespace Nanolite_agent.Config
     using System;
     using System.IO;
     using Nanolite_agent.NanoException;
+    using nanolite_agent.Properties;
     using YamlDotNet.Serialization;
     using YamlDotNet.Serialization.NamingConventions;
 
@@ -33,7 +34,7 @@ namespace Nanolite_agent.Config
             // check argument is not null or empty
             if (string.IsNullOrWhiteSpace(configPath))
             {
-                throw new ArgumentException("Config path cannot be null or empty", nameof(configPath));
+                throw new ArgumentException(DebugMessages.ConfigPathErrMessage, nameof(configPath));
             }
 
             // Read the config file
@@ -42,7 +43,7 @@ namespace Nanolite_agent.Config
                 configStr = File.ReadAllText(configPath);
                 if (configStr == null)
                 {
-                    throw new ConfigException("Config file is empty");
+                    throw new ConfigException(DebugMessages.ConfigFileErrMessage);
                 }
             }
             catch (FileNotFoundException e)
@@ -51,7 +52,7 @@ namespace Nanolite_agent.Config
             }
             catch (Exception e)
             {
-                throw new ConfigException("Error while read configFile", e);
+                throw new ConfigException(DebugMessages.ConfigFileReadErrMessage, e);
             }
 
             // Deserialize the config file
@@ -64,7 +65,7 @@ namespace Nanolite_agent.Config
             }
             catch (Exception e)
             {
-                throw new ConfigException("Error while deserializing config file", e);
+                throw new ConfigException(DebugMessages.ConfigFileDeserializeErrMessage, e);
             }
 
             return new Config(configWrapper);

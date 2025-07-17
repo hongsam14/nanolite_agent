@@ -4,11 +4,9 @@
 
 namespace Nanolite_agent.Config
 {
-    using System;
     using System.IO;
     using Nanolite_agent.NanoException;
-    using YamlDotNet.Serialization;
-    using YamlDotNet.Serialization.NamingConventions;
+    using nanolite_agent.Properties;
 
     /// <summary>
     /// Config class of the Nanolite agent.
@@ -28,19 +26,19 @@ namespace Nanolite_agent.Config
             this.CollectorIP = configWrapper?.CollectorIP;
             if (this.CollectorIP == null || this.CollectorIP.Length == 0)
             {
-                throw new ConfigException("CollectorIP is not set in the config file");
+                throw new ConfigException(DebugMessages.ConfigCollectorIPErrMessage);
             }
 
             this.CollectorPort = configWrapper?.CollectorPort;
             if (this.CollectorPort == null || this.CollectorPort.Length == 0)
             {
-                throw new ConfigException("CollectorPort is not set in the config file");
+                throw new ConfigException(DebugMessages.ConfigCollectorPortErrMessage);
             }
 
             this.Exporter = configWrapper?.Exporter;
             if (this.Exporter == null || this.Exporter.Length == 0)
             {
-                throw new ConfigException("Exporter is not set in the config file");
+                throw new ConfigException(DebugMessages.ConfigExporterErrMessage);
             }
         }
 

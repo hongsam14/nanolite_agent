@@ -7,6 +7,7 @@ namespace Nanolite_agent.Tracepoint
     using System;
     using Microsoft.Diagnostics.Tracing;
     using Nanolite_agent.Helper;
+    using nanolite_agent.Properties;
     using Newtonsoft.Json.Linq;
 
     public class Sysmon : BaseTracepoint
@@ -29,7 +30,7 @@ namespace Nanolite_agent.Tracepoint
             log = SysmonEventDecoder.DecodeSysmonEvent(data);
             if (log == null)
             {
-                throw new ArgumentException("trace event data is not acceptable");
+                throw new ArgumentException(DebugMessages.TracepointAcceptErrMessage);
             }
 
             return log;
