@@ -10,25 +10,6 @@ namespace Nanolite_agent.Tracepoint
     using Microsoft.Diagnostics.Tracing;
     using Newtonsoft.Json.Linq;
 
-    public enum SysEventCode
-    {
-        UNKNOWN = -1,
-        PROCESS_CREATION = 0,
-        PROCESS_ACCESS,
-        PROCESS_TERMINATED,
-        NETWORK_CONNECTION,
-        DNS_QUERY,
-        DRIVER_LOAD,
-        IMAGE_LOAD,
-        FILE_EVENT,
-        CREATE_STREAM_HASH,
-        FILE_DELETE,
-        REGISTRY_ADD,
-        REGISTRY_DELETE,
-        REGISTRY_SET,
-        REGISTRY_RENAME
-    }
-
     /// <summary>
     /// Super class of Syslog Event log.
     /// </summary>
@@ -172,27 +153,6 @@ namespace Nanolite_agent.Tracepoint
             }
 
             return result;
-        }
-
-        /// <summary>
-        /// Super Event log for Event logging.
-        /// </summary>
-        /// <param name="data">trace data specified by Microsoft.Diagnotics.Tracing</param>
-        /// <returns>returns log formatted in json</returns>
-        public virtual JObject EventLog(SysEventCode eventCode, TraceEvent data)
-        {
-            // check argument is not null
-            if (data == null)
-            {
-                throw new ArgumentNullException("data");
-            }
-
-            JObject jsonLog = new JObject(
-                new JProperty("EventID", eventCode),
-                new JProperty("EventName", eventCode.ToString().ToLower()),
-                new JProperty("Source", this.Source),
-                new JProperty("TimeStamp", data.TimeStamp));
-            return jsonLog;
         }
 
         /// <summary>
