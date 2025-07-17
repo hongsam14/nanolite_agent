@@ -39,8 +39,12 @@ namespace Nanolite_agent
             // Init Beacon
             //Beacon.Beacon bcon = new Beacon.Beacon(config);
 
+#if DEBUG
             // Initialize the ETW session
             EventSession.SysmonEventSession sysmonSession = new EventSession.SysmonEventSession();
+#else
+            EventSession.SysmonEventSession sysmonSession = new EventSession.SysmonEventSession(bcon);
+#endif
 
             // Ctrl + C add event
             Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)

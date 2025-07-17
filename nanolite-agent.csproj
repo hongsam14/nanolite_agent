@@ -427,6 +427,8 @@
     <Compile Include="Config\ConfigWrapper.cs" />
     <Compile Include="EventSession\IEventSession.cs" />
     <Compile Include="EventSession\SysmonEventSession.cs" />
+    <Compile Include="Helper\SysEventCode.cs" />
+    <Compile Include="Helper\SysmonEventDecoder.cs" />
     <Compile Include="NanoException\BeaconException.cs" />
     <Compile Include="NanoException\ConfigException.cs" />
     <Compile Include="Program.cs" />
