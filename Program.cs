@@ -14,7 +14,8 @@ namespace Nanolite_agent
         private static void Main(string[] args)
         {
             Config.Config config;
-            Beacon.Beacon bcon;
+            Beacon.SystemActivityBeacon bcon;
+            EventSession.SysmonEventSession sysmonSession;
 
             // check if the program is running as an administrator
             if (!TraceEventSession.IsElevated() ?? false)
@@ -27,7 +28,6 @@ namespace Nanolite_agent
             Console.WriteLine($"Self PID: {SelfInfo.PID} : ThreadId {SelfInfo.ThreadID}");
 
             // get config from config.yml
-            config = null;
             try
             {
 #if DEBUG
@@ -50,24 +50,39 @@ namespace Nanolite_agent
                 Console.WriteLine(e.Message);
                 return;
             }
+#if DEBUG
+            // start event sessions
+            sysmonSession = new EventSession.SysmonEventSession();
+#else
 
             // Init Beacon
-            bcon = new Beacon.Beacon(config);
-
-#if DEBUG
-            // Initialize the ETW session
-            EventSession.SysmonEventSession sysmonSession = new EventSession.SysmonEventSession();
-#else
-            EventSession.SysmonEventSession sysmonSession = new EventSession.SysmonEventSession(bcon);
+            try
+            {
+                bcon = new Beacon.SystemActivityBeacon(config);
+                bcon.StartMonitoring();
+            }
+            catch (BeaconException be)
+            {
+                Console.WriteLine(be.Message);
+                return;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Beacon initialization failed: {e.Message}");
+                return;
+            }
+            // start event sessions
+            sysmonSession = new EventSession.SysmonEventSession(bcon);
 #endif
 
             // Ctrl + C add event
             Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)
             {
                 sysmonSession.StopSession();
-                //bcon.Stop();
+#if !DEBUG
+                bcon.StopMonitoring();
+#endif
             };
-
 
             // Start Session
             sysmonSession.StartSession();

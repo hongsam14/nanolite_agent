@@ -9,11 +9,13 @@ namespace Nanolite_agent.Beacon
     using System.Diagnostics;
     using System.Management;
     using Google.Protobuf;
+    using Microsoft.Diagnostics.Tracing;
     using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Nanolite_agent.Config;
+    using Nanolite_agent.Helper;
     using Nanolite_agent.NanoException;
     using Newtonsoft.Json.Linq;
     using OpenTelemetry;
@@ -24,22 +26,48 @@ namespace Nanolite_agent.Beacon
     using OpenTelemetry.Trace;
     using static System.Net.Mime.MediaTypeNames;
 
-    public class Beacon
+    internal class ProcessTraceData
     {
-        private readonly string beaconName = "nanolite_beacon";
+
+    }
+
+    /// <summary>
+    /// Provides functionality and observility to monitor and log system activities using OpenTelemetry and OCSF Schema.
+    /// check https://schema.ocsf.io.
+    /// </summary>
+    /// <remarks>The <see cref="SystemActivityBeacon"/> class is responsible for initializing and managing
+    /// OpenTelemetry tracing and logging for system activities. It uses configuration settings provided in a YAML file
+    /// to set up the necessary exporters and processors. This class supports starting and stopping monitoring, as well
+    /// as processing various types of system events such as process creation, termination, and network
+    /// activities.</remarks>
+    public sealed class SystemActivityBeacon
+    {
+        private readonly string beaconName = "system_activity_beacon";
 
         private readonly IHost host;
+
+        // log exporter and processor
+        private readonly OtlpLogExporter logExporter;
+        private readonly BatchLogRecordExportProcessor logProcessor;
+
+        // trace provider, processor and span source
         private readonly TracerProvider tracerProvider;
+        private readonly BatchActivityExportProcessor traceProcessor;
+
+        // span source for Otel
         private readonly ActivitySource spanSource;
 
+        // nano-agent config file
         private readonly Config config;
+
+        // flag to check if beacon is running
         private bool isRunning;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Beacon"/> class.
+        /// Initializes a new instance of the <see cref="SystemActivityBeacon"/> class.
         /// </summary>
         /// <param name="config">config.yml file.</param>
-        public Beacon(Nanolite_agent.Config.Config config)
+        public SystemActivityBeacon(Nanolite_agent.Config.Config config)
         {
             if (config == null)
             {
@@ -60,19 +88,18 @@ namespace Nanolite_agent.Beacon
 
                 // initialize traceProvider with OtlpTraceExporter & BatchActivityExportProcessor
                 OtlpTraceExporter traceExporter = new OtlpTraceExporter(option);
-                BatchActivityExportProcessor traceProcessor = new BatchActivityExportProcessor(traceExporter);
+                this.traceProcessor = new BatchActivityExportProcessor(traceExporter);
                 this.tracerProvider = Sdk.CreateTracerProviderBuilder()
                     .SetResourceBuilder(ResourceBuilder.CreateDefault()
                     .AddService(serviceName))
                     .AddSource(serviceName)
-                    .AddProcessor(traceProcessor)
+                    .AddProcessor(this.traceProcessor)
                     .Build();
 
                 // initialize log Exporter with OtlpLogExporter & BatchLogExportProcessor
-                OtlpLogExporter logExporter = new OtlpLogExporter(option);
-                BatchLogRecordExportProcessor logProcessor = new BatchLogRecordExportProcessor(logExporter);
+                this.logExporter = new OtlpLogExporter(option);
+                this.logProcessor = new BatchLogRecordExportProcessor(this.logExporter);
 
-                // TODO: Add custom logger -> OpenTelemetry.Logs
                 this.host = Host.CreateDefaultBuilder()
                     .ConfigureServices((_, services) =>
                     {
@@ -81,7 +108,7 @@ namespace Nanolite_agent.Beacon
                             loggingBuilder.AddOpenTelemetry(options =>
                             {
                                 options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName))
-                                    .AddProcessor(logProcessor);
+                                    .AddProcessor(this.logProcessor);
                             });
                         });
                     }).Build();
@@ -94,61 +121,64 @@ namespace Nanolite_agent.Beacon
             // init Otel span source.
             try
             {
-#if !DEBUG
-                this._spanSource = new ActivitySource(name: config.Exporter);
-#else
-                this.spanSource = new ActivitySource("TestBed");
-#endif
+                this.spanSource = new ActivitySource(name: config.Exporter);
             }
             catch (Exception e)
             {
                 throw new NanoException.BeaconException("error while construct beacon.", e);
             }
 
-            this.processSpan = new Dictionary<long, Activity>();
-            this.tcpIpv4Span = new Dictionary<string, Activity>();
-
-            //this.processCreateLog = new Tracepoint.ProcessCreate();
-            //this.processTerminateLog = new Tracepoint.ProcessTerminate();
-            //this.networkCreate = new Tracepoint.NetworkCreate();
-            //this.networkDisconnect = new Tracepoint.NetworkDisconnect();
-
-            // set running flag
-            this.isRunning = true;
             this.config = config;
         }
 
-        public void Stop()
+        public void StartMonitoring()
         {
-            foreach (var activity in this.processSpan)
+            if (!this.isRunning)
             {
-                activity.Value.Stop();
+                throw new NanoException.BeaconException("Beacon is not running.");
             }
 
-            foreach (var activity in this.tcpIpv4Span)
-            {
-                activity.Value.Stop();
-            }
+            // start Otel logger
+            this.host?.Start();
+
+            // set running flag
+            this.isRunning = true;
         }
 
-        private string GetImage(long processId)
+        public void StopMonitoring()
         {
-            try
+            if (!this.isRunning)
             {
-                using (var searcher = new ManagementObjectSearcher(
-                    $"SELECT ExecutablePath FROM Win32_Process WHERE ProcessId = {processId}"))
-                {
-                    foreach (var obj in searcher.Get())
-                    {
-                        return obj["ExecutablePath"]?.ToString() ?? null;
-                    }
-                }
+                throw new NanoException.BeaconException("Beacon is not running.");
             }
-            catch { }
-            return null;
+
+            // flush Activity Dictionaries
+
+            // flush and shutdown Otel log exporter
+            this.logExporter?.ForceFlush();
+            this.logExporter?.Shutdown();
+
+            // flush and shutdown Otel trace provider
+            this.tracerProvider?.ForceFlush();
+            this.tracerProvider?.Shutdown();
+
+            // stop Otel logger
+            this.host?.StopAsync().Wait();
         }
 
-        public void ProcessCreation(ProcessTraceData traceData)
+        public void ProcessActivity(SysEventCode eventCode, JObject eventlog)
+        {
+        }
+
+        public void FileSystemActivity(SysEventCode eventCode, JObject eventlog)
+        {
+        }
+
+        public void NetworkActivity(SysEventCode eventCode, JObject eventlog)
+        {
+        }
+
+        public void ProcessCreation(JObject traceData)
         {
             //Activity pSpan = null;
             //Activity span = null;
@@ -211,7 +241,7 @@ namespace Nanolite_agent.Beacon
             //this.processSpan[pid.Value] = span;
         }
 
-        public void ProcessTerminate(ProcessTraceData traceData)
+        public void ProcessTerminate(JObject traceData)
         {
             //Activity pSpan = null;
             //Activity span = null;

@@ -19,17 +19,17 @@ namespace Nanolite_agent.EventSession
 
         private readonly TraceEventSession traceEventSession;
         private readonly Sysmon sysmonTracepoint;
-        private readonly Beacon bcon;
+        private readonly SystemActivityBeacon beacon;
         private Task sessionTask;
 
 #if DEBUG
         public SysmonEventSession()
         {
 #else
-        public SysmonEventSession(Beacon bcon)
+        public SysmonEventSession(SystemActivityBeacon bcon)
         {
             // null check for Beacon
-            this.bcon = bcon ?? throw new ArgumentNullException(nameof(bcon), "Beacon cannot be null");
+            this.beacon = bcon ?? throw new ArgumentNullException(nameof(bcon), "Beacon cannot be null");
 #endif
 
             // initialize TraceEventSession
@@ -51,6 +51,7 @@ namespace Nanolite_agent.EventSession
 
         public void StartSession()
         {
+            // Start the session and process events in a separate task
             this.sessionTask = Task.Run(() =>
             {
                 // blocked until stop is called.
@@ -60,6 +61,7 @@ namespace Nanolite_agent.EventSession
 
         public void StopSession()
         {
+            // Stop the session and the beacon monitoring
             this.traceEventSession?.Stop();
         }
 
@@ -80,25 +82,28 @@ namespace Nanolite_agent.EventSession
 
         private void RegisterCallback()
         {
-            this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "ProcessCreate(rule:ProcessCreate)", this.ProcessData);
-            this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Processaccessed(rule:ProcessAccess)", this.ProcessData);
-            this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Processterminated(rule:ProcessTerminate)", this.ProcessData);
+            //this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "ProcessCreate(rule:ProcessCreate)", this.ProcessData);
+            //this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Processaccessed(rule:ProcessAccess)", this.ProcessData);
+            //this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Processterminated(rule:ProcessTerminate)", this.ProcessData);
+            this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "RawAccessReaddetected(rule:RawAccessRead)", this.ProcessData);
             this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Filecreated(rule:FileCreate)", this.ProcessData);
             this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "FileExecutableDetected(rule:FileExecutableDetected)", this.ProcessData);
             this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Filestreamcreated(rule:FileCreateStreamHash)", this.ProcessData);
             this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "FileDeleted(rule:FileDelete)", this.ProcessData);
             this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "FileDeletelogged(rule:FileDeleteDetected)", this.ProcessData);
-            this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Networkconnectiondetected(rule:NetworkConnect)", this.ProcessData);
-            this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Dnsquery(rule:DnsQuery)", this.ProcessData);
-            this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Driverloaded(rule:DriverLoad)", this.ProcessData);
-            this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Imageloaded(rule:ImageLoad)", this.ProcessData);
-            this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Registryobjectaddedordeleted(rule:RegistryEvent)", this.ProcessData);
-            this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Registryvalueset(rule:RegistryEvent)", this.ProcessData);
+            //this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Networkconnectiondetected(rule:NetworkConnect)", this.ProcessData);
+            //this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Dnsquery(rule:DnsQuery)", this.ProcessData);
+            //this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Driverloaded(rule:DriverLoad)", this.ProcessData);
+            //this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Imageloaded(rule:ImageLoad)", this.ProcessData);
+            //this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Registryobjectaddedordeleted(rule:RegistryEvent)", this.ProcessData);
+            //this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Registryvalueset(rule:RegistryEvent)", this.ProcessData);
         }
 
         private void ProcessData(TraceEvent data)
         {
             JObject log = this.sysmonTracepoint.GetSysmonLog(data);
+
+            // this means that the log does not pass the filter
             if (log == null)
             {
                 return;

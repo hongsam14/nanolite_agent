@@ -469,6 +469,12 @@ namespace Nanolite_agent.Helper
         /// </summary>
         [JsonProperty(nameof(User))]
         public string User { get; set; }
+
+        /// <summary>
+        /// Gets or sets the raw access read permissions as a string.
+        /// </summary>
+        [JsonProperty(nameof(RawAccessRead), NullValueHandling = NullValueHandling.Ignore)]
+        public string RawAccessRead { get; set; }
     }
 
     /// <summary>
@@ -710,6 +716,7 @@ namespace Nanolite_agent.Helper
 
         // represent for file_event
         private const ushort FILECREATE = 11;
+        private const ushort RAWACCESSREAD = 9;
         private const ushort FILEEXEDETECTED = 29;
 
         // represent for create_stream_hash
@@ -752,6 +759,48 @@ namespace Nanolite_agent.Helper
 
             SysEventCode code = SysmonEventDecoder.GetEventCodeFromData(origin);
             return SysmonEventDecoder.EventFromCode(code, origin);
+        }
+
+        /// <summary>
+        /// Determines the system event code based on the provided trace event data.
+        /// </summary>
+        /// <param name="eventData">The trace event data from which to derive the system event code. Cannot be null.</param>
+        /// <returns>A <see cref="SysEventCode"/> value representing the type of system event detected in the trace event data.
+        /// Returns <see cref="SysEventCode.Unknown"/> if the event ID does not match any known event types.</returns>
+        public static SysEventCode GetEventCodeFromData(TraceEvent eventData)
+        {
+            switch ((ushort)eventData.ID)
+            {
+                case PROCESSCREATE:
+                    return SysEventCode.ProcessCreation;
+                case PROCESSTERMINATED:
+                    return SysEventCode.ProcessTerminated;
+                case PROCESSACCESS:
+                    return SysEventCode.ProcessAccess;
+                case FILECREATE:
+                case FILEEXEDETECTED:
+                case RAWACCESSREAD:
+                    return SysEventCode.FileEvent;
+                case FILEDELETE:
+                case FILEDELETEDETECTED:
+                    return SysEventCode.FileDelete;
+                case FILECREATESTREAMHASH:
+                    return SysEventCode.CreateStreamHash;
+                case NETWORKCONNECT:
+                    return SysEventCode.NetworkConnection;
+                case DNSQUERY:
+                    return SysEventCode.DnsQuery;
+                case DRIVERLOADED:
+                    return SysEventCode.DriverLoad;
+                case IMAGELOADED:
+                    return SysEventCode.ImageLoad;
+                case REGISTRYCREATEDELETE:
+                    return SysmonEventDecoder.GetRegistryTypeFromData(eventData);
+                case REGISTRYSETVALUE:
+                    return SysEventCode.RegistrySet;
+                default:
+                    return SysEventCode.Unknown;
+            }
         }
 
         private static JObject EventFromCode(SysEventCode eventCode, TraceEvent origin)
@@ -844,41 +893,6 @@ namespace Nanolite_agent.Helper
 
             // convert T to JObject
             return JObject.FromObject(convertedObj);
-        }
-
-        private static SysEventCode GetEventCodeFromData(TraceEvent eventData)
-        {
-            switch ((ushort)eventData.ID)
-            {
-                case PROCESSCREATE:
-                    return SysEventCode.ProcessCreation;
-                case PROCESSTERMINATED:
-                    return SysEventCode.ProcessTerminated;
-                case PROCESSACCESS:
-                    return SysEventCode.ProcessAccess;
-                case FILECREATE:
-                case FILEEXEDETECTED:
-                    return SysEventCode.FileEvent;
-                case FILEDELETE:
-                case FILEDELETEDETECTED:
-                    return SysEventCode.FileDelete;
-                case FILECREATESTREAMHASH:
-                    return SysEventCode.CreateStreamHash;
-                case NETWORKCONNECT:
-                    return SysEventCode.NetworkConnection;
-                case DNSQUERY:
-                    return SysEventCode.DnsQuery;
-                case DRIVERLOADED:
-                    return SysEventCode.DriverLoad;
-                case IMAGELOADED:
-                    return SysEventCode.ImageLoad;
-                case REGISTRYCREATEDELETE:
-                    return SysmonEventDecoder.GetRegistryTypeFromData(eventData);
-                case REGISTRYSETVALUE:
-                    return SysEventCode.RegistrySet;
-                default:
-                    return SysEventCode.Unknown;
-            }
         }
 
         private static SysEventCode GetRegistryTypeFromData(TraceEvent regEventtData)
