@@ -224,6 +224,78 @@ namespace Nanolite_agent.Helper
     }
 
     /// <summary>
+    /// Represents metadata associated with the creation of a remote thread in a target process.
+    /// </summary>
+    public sealed class CreateRemoteThreadMetadata : IMetadata
+    {
+        /// <summary>
+        /// Gets or sets the process ID of the source process that created the remote thread.
+        /// </summary>
+        [JsonProperty(nameof(SourceProcessId))]
+        public long SourceProcessId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the image name of the source process that created the remote thread.
+        /// </summary>
+        [JsonProperty(nameof(SourceImage))]
+        public string SourceImage { get; set; }
+
+        /// <summary>
+        /// Gets or sets the user associated with the source process.
+        /// </summary>
+        [JsonProperty(nameof(User))]
+        public string User { get; set; }
+
+        /// <summary>
+        /// Gets or sets the process ID of the target process where the remote thread was created.
+        /// </summary>
+        [JsonProperty(nameof(TargetProcessId))]
+        public long TargetProcessId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the image name of the target process where the remote thread was created.
+        /// </summary>
+        [JsonProperty(nameof(TargetImage))]
+        public string TargetImage { get; set; }
+
+        /// <summary>
+        /// Gets or sets the module name where the remote thread was created.
+        /// </summary>
+        public string StartModule { get; set; }
+
+        /// <summary>
+        /// Gets or sets the function name where the remote thread was created.
+        /// </summary>
+        public string StartFunction { get; set; }
+    }
+
+    public sealed class ProcessTamperingMetadata : IMetadata
+    {
+        /// <summary>
+        /// Gets or sets the user associated with the source process.
+        /// </summary>
+        [JsonProperty(nameof(User))]
+        public string User { get; set; }
+
+        /// <summary>
+        /// Gets or sets the process ID associated with the DNS query event.
+        /// </summary>
+        [JsonProperty(nameof(ProcessId))]
+        public long ProcessId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the image name associated with the DNS query event.
+        /// </summary>
+        [JsonProperty(nameof(Image))]
+        public string Image { get; set; }
+
+        /// <summary>
+        /// Gets or sets the type of tampering that occurred.
+        /// </summary>
+        public string Type { get; set; }
+    }
+
+    /// <summary>
     /// Represents metadata for a network connection, providing details about the source and destination endpoints, the
     /// protocol used, and the process initiating the connection.
     /// </summary>
@@ -433,12 +505,12 @@ namespace Nanolite_agent.Helper
     }
 
     /// <summary>
-    /// Represents metadata associated with a file event, including process information and file details.
+    /// Represents file create metadata associated with a file event, including process information and file details.
     /// </summary>
     /// <remarks>This class provides properties to access various details about a file event, such as the
     /// process ID, the image name, the target filename, the creation time in UTC, and the user associated with the
     /// event.</remarks>
-    public sealed class FileEventMetadata : IMetadata
+    public sealed class FileCreateMetadata : IMetadata
     {
         /// <summary>
         /// Gets or sets the process ID associated with the file event.
@@ -473,8 +545,91 @@ namespace Nanolite_agent.Helper
         /// <summary>
         /// Gets or sets the raw access read permissions as a string.
         /// </summary>
-        [JsonProperty(nameof(RawAccessRead), NullValueHandling = NullValueHandling.Ignore)]
-        public string RawAccessRead { get; set; }
+        //[JsonProperty(nameof(RawAccessRead), NullValueHandling = NullValueHandling.Ignore)]
+        //public string RawAccessRead { get; set; }
+    }
+
+    public sealed class FileModifiedMetadata : IMetadata
+    {
+        /// <summary>
+        /// Gets or sets the process ID associated with the file modification event.
+        /// </summary>
+        [JsonProperty(nameof(ProcessId))]
+        public long ProcessId { get; set; }
+        /// <summary>
+        /// Gets or sets the image name associated with the file modification event.
+        /// </summary>
+        [JsonProperty(nameof(Image))]
+        public string Image { get; set; }
+        /// <summary>
+        /// Gets or sets the target filename that was modified.
+        /// </summary>
+        [JsonProperty(nameof(TargetFilename))]
+        public string TargetFilename { get; set; }
+        /// <summary>
+        /// Gets or sets the user who performed the file modification operation.
+        /// </summary>
+        [JsonProperty(nameof(User))]
+        public string User { get; set; }
+
+        /// <summary>
+        /// Gets or sets the creation time of the file in UTC.
+        /// </summary>
+        [JsonProperty(nameof(CreationUtcTime), NullValueHandling = NullValueHandling.Ignore)]
+        public DateTime CreationUtcTime { get; set; }
+
+        /// <summary>
+        /// Gets or sets the previous creation time of the file in UTC.
+        /// </summary>
+        [JsonProperty(nameof(PreviousCreationUtcTime), NullValueHandling = NullValueHandling.Ignore)]
+        public DateTime PreviousCreationUtcTime { get; set; }
+    }
+
+
+    /// <summary>
+    /// Represents metadata for creating a stream hash, including details such as creation time, hash value, and
+    /// associated user.
+    /// </summary>
+    /// <remarks>This class is used to encapsulate metadata information required for the creation of a stream
+    /// hash. It includes properties for the creation time in UTC, the hash value, the image associated with the hash,
+    /// the process ID, the target filename, and the user who initiated the creation.</remarks>
+    public sealed class CreateStreamHashMetadata : IMetadata
+    {
+        /// <summary>
+        /// Gets or sets the creation time of the stream hash in UTC.
+        /// </summary>
+        [JsonProperty(nameof(CreationUtcTime))]
+        public string CreationUtcTime { get; set; }
+
+        /// <summary>
+        /// Gets or sets the hash value of the stream.
+        /// </summary>
+        [JsonProperty(nameof(Hash))]
+        public string Hash { get; set; }
+
+        /// <summary>
+        /// Gets or sets the image associated with the stream hash.
+        /// </summary>
+        [JsonProperty(nameof(Image))]
+        public string Image { get; set; }
+
+        /// <summary>
+        /// Gets or sets the process ID associated with the stream hash creation.
+        /// </summary>
+        [JsonProperty(nameof(ProcessId))]
+        public long ProcessId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the target filename for which the stream hash was created.
+        /// </summary>
+        [JsonProperty(nameof(TargetFilename))]
+        public string TargetFilename { get; set; }
+
+        /// <summary>
+        /// Gets or sets the user who initiated the stream hash creation.
+        /// </summary>
+        [JsonProperty(nameof(User))]
+        public string User { get; set; }
     }
 
     /// <summary>
@@ -614,11 +769,11 @@ namespace Nanolite_agent.Helper
     }
 
     /// <summary>
-    /// Represents metadata associated with a registry event.
+    /// Represents metadata associated with a registry rename event.
     /// </summary>
-    /// <remarks>This class provides details about a registry event, including information about the process
+    /// <remarks>This class provides details about a registry rename event, including information about the process
     /// and user involved.</remarks>
-    public sealed class RegistryEventMetadata : IMetadata
+    public sealed class RegistryRenameMetadata : IMetadata
     {
         /// <summary>
         /// Gets or sets the details of the registry event.
@@ -649,52 +804,12 @@ namespace Nanolite_agent.Helper
         /// </summary>
         [JsonProperty(nameof(User))]
         public string User { get; set; }
-    }
-
-    /// <summary>
-    /// Represents metadata for creating a stream hash, including details such as creation time, hash value, and
-    /// associated user.
-    /// </summary>
-    /// <remarks>This class is used to encapsulate metadata information required for the creation of a stream
-    /// hash. It includes properties for the creation time in UTC, the hash value, the image associated with the hash,
-    /// the process ID, the target filename, and the user who initiated the creation.</remarks>
-    public sealed class CreateStreamHashMetadata : IMetadata
-    {
-        /// <summary>
-        /// Gets or sets the creation time of the stream hash in UTC.
-        /// </summary>
-        [JsonProperty(nameof(CreationUtcTime))]
-        public string CreationUtcTime { get; set; }
 
         /// <summary>
-        /// Gets or sets the hash value of the stream.
+        /// Gets or sets the new name of the registry key after the rename operation.
         /// </summary>
-        [JsonProperty(nameof(Hash))]
-        public string Hash { get; set; }
-
-        /// <summary>
-        /// Gets or sets the image associated with the stream hash.
-        /// </summary>
-        [JsonProperty(nameof(Image))]
-        public string Image { get; set; }
-
-        /// <summary>
-        /// Gets or sets the process ID associated with the stream hash creation.
-        /// </summary>
-        [JsonProperty(nameof(ProcessId))]
-        public long ProcessId { get; set; }
-
-        /// <summary>
-        /// Gets or sets the target filename for which the stream hash was created.
-        /// </summary>
-        [JsonProperty(nameof(TargetFilename))]
-        public string TargetFilename { get; set; }
-
-        /// <summary>
-        /// Gets or sets the user who initiated the stream hash creation.
-        /// </summary>
-        [JsonProperty(nameof(User))]
-        public string User { get; set; }
+        [JsonProperty(nameof(NewName))]
+        public string NewName { get; set; }
     }
 
     /// <summary>
@@ -714,10 +829,20 @@ namespace Nanolite_agent.Helper
         // represent for process_access
         private const ushort PROCESSACCESS = 10;
 
-        // represent for file_event
-        private const ushort FILECREATE = 11;
+        // represent for create_remote_thread
+        private const ushort CREATEREMOTETHREAD = 8;
+
+        // represent for process_tampering
+        private const ushort PROCESSTAMPERING = 25;
+
         private const ushort RAWACCESSREAD = 9;
+
+        // represent for file_create
+        private const ushort FILECREATE = 11;
         private const ushort FILEEXEDETECTED = 29;
+
+        // represent for file modified
+        private const ushort FILECREATIONTIMECHANGED = 2;
 
         // represent for create_stream_hash
         private const ushort FILECREATESTREAMHASH = 15;
@@ -743,6 +868,9 @@ namespace Nanolite_agent.Helper
 
         // represent registry set
         private const ushort REGISTRYSETVALUE = 13;
+
+        // represent registry rename
+        private const ushort REGISTRYRENAME = 14;
 
         /// <summary>
         /// Decodes a Sysmon event from the provided trace event data.
@@ -777,13 +905,18 @@ namespace Nanolite_agent.Helper
                     return SysEventCode.ProcessTerminated;
                 case PROCESSACCESS:
                     return SysEventCode.ProcessAccess;
+                case PROCESSTAMPERING:
+                    return SysEventCode.ProcessTampering;
+                case CREATEREMOTETHREAD:
+                    return SysEventCode.CreateRemoteThread;
                 case FILECREATE:
                 case FILEEXEDETECTED:
-                case RAWACCESSREAD:
-                    return SysEventCode.FileEvent;
+                    return SysEventCode.FileCreate;
                 case FILEDELETE:
                 case FILEDELETEDETECTED:
                     return SysEventCode.FileDelete;
+                case FILECREATIONTIMECHANGED:
+                    return SysEventCode.FileModified;
                 case FILECREATESTREAMHASH:
                     return SysEventCode.CreateStreamHash;
                 case NETWORKCONNECT:
@@ -798,6 +931,8 @@ namespace Nanolite_agent.Helper
                     return SysmonEventDecoder.GetRegistryTypeFromData(eventData);
                 case REGISTRYSETVALUE:
                     return SysEventCode.RegistrySet;
+                case REGISTRYRENAME:
+                    return SysEventCode.RegistryRename;
                 default:
                     return SysEventCode.Unknown;
             }
@@ -829,11 +964,23 @@ namespace Nanolite_agent.Helper
                 case SysEventCode.ProcessAccess:
                     metadataObj = SysmonEventDecoder.DecodeSysmonMetadata<ProcessAccessMetadata>(origin);
                     break;
-                case SysEventCode.FileEvent:
-                    metadataObj = SysmonEventDecoder.DecodeSysmonMetadata<FileEventMetadata>(origin);
+                case SysEventCode.ProcessTampering:
+                    metadataObj = SysmonEventDecoder.DecodeSysmonMetadata<ProcessTamperingMetadata>(origin);
+                    break;
+                case SysEventCode.CreateRemoteThread:
+                    metadataObj = SysmonEventDecoder.DecodeSysmonMetadata<CreateRemoteThreadMetadata>(origin);
+                    break;
+                case SysEventCode.FileCreate:
+                    metadataObj = SysmonEventDecoder.DecodeSysmonMetadata<FileCreateMetadata>(origin);
                     break;
                 case SysEventCode.FileDelete:
                     metadataObj = SysmonEventDecoder.DecodeSysmonMetadata<FileDeleteMetadata>(origin);
+                    break;
+                case SysEventCode.FileModified:
+                    metadataObj = SysmonEventDecoder.DecodeSysmonMetadata<FileModifiedMetadata>(origin);
+                    break;
+                case SysEventCode.CreateStreamHash:
+                    metadataObj = SysmonEventDecoder.DecodeSysmonMetadata<CreateStreamHashMetadata>(origin);
                     break;
                 case SysEventCode.DriverLoad:
                     metadataObj = SysmonEventDecoder.DecodeSysmonMetadata<DriverLoadMetadata>(origin);
@@ -850,8 +997,8 @@ namespace Nanolite_agent.Helper
                 case SysEventCode.RegistryDelete:
                     metadataObj = SysmonEventDecoder.DecodeSysmonMetadata<RegistryDeleteMetadata>(origin);
                     break;
-                case SysEventCode.CreateStreamHash:
-                    metadataObj = SysmonEventDecoder.DecodeSysmonMetadata<CreateStreamHashMetadata>(origin);
+                case SysEventCode.RegistryRename:
+                    metadataObj = SysmonEventDecoder.DecodeSysmonMetadata<RegistryRenameMetadata>(origin);
                     break;
                 case SysEventCode.DnsQuery:
                     metadataObj = SysmonEventDecoder.DecodeSysmonMetadata<DnsQueryMetadata>(origin);

@@ -43,10 +43,10 @@ namespace Nanolite_agent.Tracepoint
             }
 
             // run pre filter function
-            //if (!this.PreFilterFunc(data))
-            //{
-            //    return null;
-            //}
+            if (!this.PreFilterFunc(data))
+            {
+                return null;
+            }
 
             log = SysmonEventDecoder.DecodeSysmonEvent(data);
             if (log == null)
@@ -55,10 +55,10 @@ namespace Nanolite_agent.Tracepoint
             }
 
             // run post filter function
-            //if (!this.PostFilterFunc(log))
-            //{
-            //    return null;
-            //}
+            if (!this.PostFilterFunc(log))
+            {
+                return null;
+            }
 
             return log;
         }

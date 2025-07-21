@@ -30,6 +30,16 @@ namespace Nanolite_agent.Helper
         ProcessTerminated,
 
         /// <summary>
+        /// Represents the event code for creating a remote thread.
+        /// </summary>
+        CreateRemoteThread,
+
+        /// <summary>
+        /// Represents the event code for process tampering.
+        /// </summary>
+        ProcessTampering,
+
+        /// <summary>
         /// Represents the event code for a network connection.
         /// </summary>
         NetworkConnection,
@@ -50,19 +60,24 @@ namespace Nanolite_agent.Helper
         ImageLoad,
 
         /// <summary>
-        /// Represents the event code for a file event.
+        /// Represents the event code for a file create.
         /// </summary>
-        FileEvent,
+        FileCreate,
 
         /// <summary>
-        /// Represents the event code for creating a stream hash.
+        /// Represents the event code for a file modification.
         /// </summary>
-        CreateStreamHash,
+        FileModified,
 
         /// <summary>
         /// Represents the event code for file deletion.
         /// </summary>
         FileDelete,
+
+        /// <summary>
+        /// Represents the event code for creating a stream hash.
+        /// </summary>
+        CreateStreamHash,
 
         /// <summary>
         /// Represents the event code for adding a registry entry.
@@ -78,6 +93,11 @@ namespace Nanolite_agent.Helper
         /// Represents the event code for setting a registry value.
         /// </summary>
         RegistrySet,
+
+        /// <summary>
+        /// Represents the event code for renaming a registry entry.
+        /// </summary>
+        RegistryRename,
     }
 
     /// <summary>
@@ -102,6 +122,8 @@ namespace Nanolite_agent.Helper
                     return "process_access";
                 case SysEventCode.ProcessTerminated:
                     return "process_terminated";
+                case SysEventCode.CreateRemoteThread:
+                    return "create_remote_thread";
                 case SysEventCode.NetworkConnection:
                     return "network_connection";
                 case SysEventCode.DnsQuery:
@@ -110,8 +132,10 @@ namespace Nanolite_agent.Helper
                     return "driver_load";
                 case SysEventCode.ImageLoad:
                     return "image_load";
-                case SysEventCode.FileEvent:
-                    return "file_event";
+                case SysEventCode.FileCreate:
+                    return "file_create";
+                case SysEventCode.FileModified:
+                    return "file_modified";
                 case SysEventCode.CreateStreamHash:
                     return "create_stream_hash";
                 case SysEventCode.FileDelete:
@@ -122,6 +146,8 @@ namespace Nanolite_agent.Helper
                     return "registry_delete";
                 case SysEventCode.RegistrySet:
                     return "registry_set";
+                case SysEventCode.RegistryRename:
+                    return "registry_rename";
                 default:
                     return "unknown_event";
             }
