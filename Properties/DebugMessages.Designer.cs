@@ -142,6 +142,15 @@ namespace nanolite_agent.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Object cannot be null or empty.
+        /// </summary>
+        public static string SystemActivityNullException {
+            get {
+                return ResourceManager.GetString("SystemActivityNullException", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Trace event data is not acceptable.
         /// </summary>
         public static string TracepointAcceptErrMessage {
