@@ -50,6 +50,24 @@ namespace Nanolite_agent.Beacon.SystemActivity
         /// clears the internal map to release resources for garbage collection.</remarks>
         ~ActorActivitiesOfProcess()
         {
+            // Call FlushActors to ensure all activities are stopped and data is sent to the collector
+            this.FlushActors();
+        }
+
+        /// <summary>
+        /// Flushes all active actors, sending their activity data to the collector and releasing resources.
+        /// </summary>
+        /// <remarks>This method iterates over all actors in the current map, stops their activities to
+        /// send data to the collector, and then clears the map to release resources. If the actor map is already null,
+        /// the method returns immediately.</remarks>
+        public void FlushActors()
+        {
+            // heck if actorMap is already null
+            if (this.actorMap == null)
+            {
+                return;
+            }
+
             // Iterate over the Values collection to get ActorActivityContext objects directly
             foreach (ActorActivityContext actorActivityContext in this.actorMap.Values)
             {
@@ -97,12 +115,20 @@ namespace Nanolite_agent.Beacon.SystemActivity
                 throw new ArgumentException(DebugMessages.SystemActivityInvalidType, nameof(type));
             }
 
+            // check if actorMap is null
+            if (this.actorMap == null)
+            {
+                // raise exception if actorMap is null. because it means FlushActors has been called
+                throw new NanoException.SystemActivityException(DebugMessages.SystemActivityInvalidOperationException
+                    + "Upsert function is called after FlushActor");
+            }
+
             // create ActorContext
             ActorActivityContext actorActivityContext = null;
             ActorContext newActor = new ActorContext(artifect, type);
 
             // Create ObjectActorContext if it does not exist
-            if (this.actorMap.TryGetValue(newActor.ActorContextID, out ActorActivityContext value))
+            if (this.actorMap.TryGetValue(newActor.ContextID, out ActorActivityContext value))
             {
                 // get existing ActorActivityContext for Getter
                 actorActivityContext = value;
@@ -110,7 +136,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
             else
             {
                 // Create a new ActorActivityContext for Getter
-                Activity newActivity = this.activitySource.CreateActivity(newActor.ActorContextID, ActivityKind.Internal, processActivity.Context);
+                Activity newActivity = this.activitySource.CreateActivity(newActor.ContextID, ActivityKind.Internal, processActivity.Context);
                 if (newActivity == null)
                 {
                     throw new NanoException.SystemActivityException(DebugMessages.SystemActivityUpsertException);
@@ -120,7 +146,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
                 actorActivityContext = new ActorActivityContext(newActivity, newActor);
 
                 // Add the new ActorActivityContext to the GetterSpan dictionary
-                this.actorMap[newActor.ActorContextID] = actorActivityContext;
+                this.actorMap[newActor.ContextID] = actorActivityContext;
 
                 // Set tags for the activity
                 ActorTypeExtension.TagActorActivityAttribute(newActivity, this.activityType);

@@ -50,6 +50,11 @@ namespace Nanolite_agent.Beacon.SystemActivity
         /// </summary>
         Undefined = 0,
 
+        /// <summary>
+        /// Represents an actor that is not an actor in the system.
+        /// </summary>
+        NOT_ACTOR,
+
         /************************************************************************
         * Process injection related actors
         * ***********************************************************************/
@@ -132,6 +137,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
     /// There are two main types of activities: read/recv and write/send.
     /// read/recv activities involve retrieving or receiving data, while write/send activities involve sending or modifying data.
     /// write/send activities can include actions like tampering, connecting, creating, deleting, modifying, and registry operations.
+    /// not_actor indicates that the entity is not an actor.
     /// </summary>
     public enum ActorActivityType
     {
@@ -139,6 +145,11 @@ namespace Nanolite_agent.Beacon.SystemActivity
         /// Represents an undefined state or value.
         /// </summary>
         UNDEFINED = 0,
+
+        /// <summary>
+        /// Represents a constant value indicating that the entity is not an actor.
+        /// </summary>
+        NOT_ACTOR,
 
         /// <summary>
         /// Represents a read/recv operation such as network recv or file read, create_remote_thread, etc.

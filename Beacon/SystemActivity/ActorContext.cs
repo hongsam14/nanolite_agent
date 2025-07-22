@@ -8,12 +8,17 @@ namespace Nanolite_agent.Beacon.SystemActivity
     using nanolite_agent.Properties;
 
     /// <summary>
-    /// ActorContext class represents the context of an actor in the system.
+    /// Represents the context of an actor within a system, encapsulating the actor's type and associated artifect
+    /// context.
     /// </summary>
-    public class ActorContext
+    /// <remarks>The <see cref="ActorContext"/> class is used to define the environment in which an actor
+    /// operates,  distinguishing it from a <see cref="ProcessContext"/> by focusing on the actor's role and the
+    /// artifect it interacts with.</remarks>
+    public class ActorContext : ISystemContext
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ActorContext"/> class with the specified artifect context and actor type.
+        /// The difference between this and the <see cref="ProcessContext"/> is that this context is used to represent the actor that process is behaving,
         /// </summary>
         /// <param name="artifectContext">The type of artifect, indicating its name and type. </param>
         /// <param name="type">The type of actor, indicating it's type of actor. </param>
@@ -59,7 +64,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
         /// Gets the identifier for the actor context, which is a combination of the artifect ID and the actor type.
         /// The format is "{ArtifectID}@{ActorType}".
         /// </summary>
-        public string ActorContextID
+        public string ContextID
         {
             get
             {

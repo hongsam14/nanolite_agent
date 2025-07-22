@@ -35,9 +35,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
             }
             else
             {
-                throw new SystemActivityException(
-                    $"Unsupported ActorType: {type}. " +
-                    "Please use a valid ActorType that is either a read/recv or write/send actor.");
+                return ActorActivityType.NOT_ACTOR;
             }
         }
 
