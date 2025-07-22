@@ -7,33 +7,116 @@ using System.Threading.Tasks;
 
 namespace Nanolite_agent.Beacon
 {
+    /// <summary>
+    /// ArtifectType enum represents Actor's artifect type.
+    /// </summary>
     public enum ArtifectType
     {
+        /// <summary>
+        /// File system artifect.
+        /// </summary>
         File,
+
+        /// <summary>
+        /// Registry artifect.
+        /// </summary>
         Registry,
+
+        /// <summary>
+        /// Network artifect.
+        /// </summary>
         Network,
+
+        /// <summary>
+        ///  Process artifect. This is not Process Object. This is a type of artifect that represents a process injection.
+        /// </summary>
         Process,
+
+        /// <summary>
+        /// Module artifect
+        /// </summary>
         Module,
     }
 
+    /// <summary>
+    /// ActorType enum represents the type of actor in the system.
+    /// </summary>
     public enum ActorType
     {
-        // process
+        /************************************************************************
+        * Process injection related actors
+        * ***********************************************************************/
+
+        /// <summary>
+        /// Remote thread actor. This actor represents sysmon-event-8
+        /// </summary>
         REMOTE_THREAD,
+
+        /// <summary>
+        /// Tampering actor. This actor represents sysmon-event-25
+        /// </summary>
         TAMPERING,
-        // network
+
+        /************************************************************************
+         * Network related actors
+         * **********************************************************************/
+
+        /// <summary>
+        /// Connect actor. This actor represents sysmon-event-3
+        /// </summary>
         CONNECT,
+
+        /// <summary>
+        /// Accept actor. This actor is not related to sysmon-event. This actor represents a network connection that is accepted by the system.
+        /// </summary>
         ACCEPT,
-        // file system
+
+        /************************************************************************
+         * File system related actors
+         * **********************************************************************/
+
+        /// <summary>
+        /// Create actor. This actor represents file-creation events such as sysmon-event-11, 29.
+        /// </summary>
         CREATE,
-        RENAME,
+
+        /// <summary>
+        /// Delete actor. This actor represents file-deletion events such as sysmon-event-23.
+        /// </summary>
         DELETE,
+
+        /// <summary>
+        /// Modify actor. This actor represents file-modification events such as sysmon-event-2
+        /// </summary>
         MODIFY,
+
+        /// <summary>
+        /// Create stream hash actor. This actor represents sysmon-event-15.
+        /// </summary>
         CREATE_STREAM_HASH,
-        // registry
+
+        /* **********************************************************************
+         * Registry related actors
+         * **********************************************************************/
+
+        /// <summary>
+        /// Registry add actor. This actor represents sysmon-event-12.
+        /// </summary>
         REG_ADD,
+
+        /// <summary>
+        /// Registry delete actor. This actor represents sysmon-event-12.
+        /// </summary>
         REG_DELETE,
+
+        /// <summary>
+        /// Registry set actor. This actor represents sysmon-event-13.
+        /// </summary>
         REG_SET,
+
+        /// <summary>
+        /// Registry rename actor. This actor represents sysmon-event-14.
+        /// </summary>
         REG_RENAME,
     }
 

@@ -442,6 +442,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Beacon\SystemActivity.cs" />
     <Compile Include="Beacon\SystemActivityBeacon.cs" />
     <Compile Include="Config\Config.cs" />
     <Compile Include="Config\ConfigExtension.cs" />
