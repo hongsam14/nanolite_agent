@@ -146,6 +146,9 @@
     <value>Run as Administrator</value>
     <comment>This program should run as Administrator</comment>
   </data>
+  <data name="SystemActivityInvalidOperationException" xml:space="preserve">
+    <value>Invalid operation at SystemActivity</value>
+  </data>
   <data name="SystemActivityInvalidType" xml:space="preserve">
     <value>Invalid Actor Type</value>
   </data>

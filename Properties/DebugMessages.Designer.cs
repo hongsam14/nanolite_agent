@@ -142,6 +142,15 @@ namespace nanolite_agent.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Invalid operation at SystemActivity.
+        /// </summary>
+        public static string SystemActivityInvalidOperationException {
+            get {
+                return ResourceManager.GetString("SystemActivityInvalidOperationException", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Invalid Actor Type.
         /// </summary>
         public static string SystemActivityInvalidType {
