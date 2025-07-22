@@ -146,8 +146,14 @@
     <value>Run as Administrator</value>
     <comment>This program should run as Administrator</comment>
   </data>
+  <data name="SystemActivityInvalidType" xml:space="preserve">
+    <value>Invalid Actor Type</value>
+  </data>
   <data name="SystemActivityNullException" xml:space="preserve">
     <value>Object cannot be null or empty</value>
+  </data>
+  <data name="SystemActivityUpsertException" xml:space="preserve">
+    <value>Failed to upsert actor activity to actor map</value>
   </data>
   <data name="TracepointAcceptErrMessage" xml:space="preserve">
     <value>Trace event data is not acceptable</value>
