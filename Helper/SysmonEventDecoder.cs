@@ -947,7 +947,7 @@ namespace Nanolite_agent.Helper
             // add common header
             eventObj.Add("EventID", (int)eventCode);
 
-            eventObj.Add("EventName", value: SysmonEventCodeExtensions.ToFriendlyString(eventCode));
+            eventObj.Add("EventName", value: Helper.SysmonEventCodeExtension.ToFriendlyString(eventCode));
 
             eventObj.Add("Source", "sysmon");
 

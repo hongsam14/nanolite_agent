@@ -253,5 +253,6 @@ namespace Nanolite_agent.Beacon.SystemActivity
             // clear the processMap and set null to release to garbage collector.
             this.processMap.Clear();
             this.processMap = null;
+        }
     }
 }

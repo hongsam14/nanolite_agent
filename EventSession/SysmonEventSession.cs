@@ -9,6 +9,7 @@ namespace Nanolite_agent.EventSession
     using Microsoft.Diagnostics.Tracing;
     using Microsoft.Diagnostics.Tracing.Session;
     using Nanolite_agent.Beacon;
+    using Nanolite_agent.Helper;
     using Nanolite_agent.Tracepoint;
     using Newtonsoft.Json.Linq;
 
@@ -122,12 +123,14 @@ namespace Nanolite_agent.EventSession
             // print log
             Console.WriteLine(log.ToString(Newtonsoft.Json.Formatting.None));
 #else
+            SysEventCode code = SysmonEventDecoder.GetEventCodeFromData(data);
+
             // send log to Beacon
-            if (this.bcon != null)
+            if (this.beacon != null)
             {
                 try
                 {
-                    this.bcon.SendLog(log);
+                    this.beacon.SystemActivity(code, log);
                 }
                 catch (Exception e)
                 {

@@ -2,10 +2,10 @@
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
-using Nanolite_agent.Beacon.SystemActivity;
-
 namespace Nanolite_agent.Helper
 {
+    using Nanolite_agent.Beacon.SystemActivity;
+
     /// <summary>
     /// Provides extension methods for the <see cref="SysEventCode"/> enumeration.
     /// </summary>

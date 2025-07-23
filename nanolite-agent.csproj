@@ -449,6 +449,7 @@
     <Compile Include="Beacon\SystemActivity\ActorActivitiesOfProcess.cs" />
     <Compile Include="Beacon\SystemActivityBeacon.cs" />
     <Compile Include="Beacon\SystemActivity\ISystemContext.cs" />
+    <Compile Include="Beacon\SystemActivity\ProcessActivitiesOfSystem.cs" />
     <Compile Include="Beacon\SystemActivity\ProcessActivityContext.cs" />
     <Compile Include="Beacon\SystemActivity\ProcessContext.cs" />
     <Compile Include="Beacon\SystemActivity\SystemActivityType.cs" />
@@ -458,6 +459,7 @@
     <Compile Include="EventSession\IEventSession.cs" />
     <Compile Include="EventSession\SysmonEventSession.cs" />
     <Compile Include="Helper\SysEventCode.cs" />
+    <Compile Include="Helper\SysmonEventCodeExtension.cs" />
     <Compile Include="Helper\SysmonEventDecoder.cs" />
     <Compile Include="NanoException\BeaconException.cs" />
     <Compile Include="NanoException\ConfigException.cs" />
