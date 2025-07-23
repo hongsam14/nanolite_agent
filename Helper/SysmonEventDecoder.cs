@@ -435,6 +435,12 @@ namespace Nanolite_agent.Helper
     public sealed class DriverLoadMetadata : IMetadata
     {
         /// <summary>
+        /// Gets or sets the image loaded associated with the object.
+        /// </summary>
+        [JsonProperty(nameof(ImageLoaded))]
+        public string ImageLoaded { get; set; }
+
+        /// <summary>
         /// Gets or sets the hash values associated with the object.
         /// </summary>
         [JsonProperty(nameof(Hashes))]
@@ -502,6 +508,12 @@ namespace Nanolite_agent.Helper
         /// </summary>
         [JsonProperty(nameof(User))]
         public string User { get; set; }
+
+        /// <summary>
+        /// Gets or sets the image loaded associated with the object.
+        /// </summary>
+        [JsonProperty(nameof(ImageLoaded))]
+        public string ImageLoaded { get; set; }
     }
 
     /// <summary>

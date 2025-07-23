@@ -53,10 +53,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>5CD6E7D601B5C39B5572C1AAFFECFE06A15677FF</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>58CCCC0584DF99B7D8FFB1B04E626EF5F2DD500F</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestKeyFile>nanolite-agent_TemporaryKey.pfx</ManifestKeyFile>
+    <ManifestKeyFile>nanolite-agent_1_TemporaryKey.pfx</ManifestKeyFile>
   </PropertyGroup>
   <PropertyGroup>
     <GenerateManifests>true</GenerateManifests>
@@ -478,6 +478,7 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="config.yml" />
+    <None Include="nanolite-agent_1_TemporaryKey.pfx" />
     <None Include="nanolite-agent_TemporaryKey.pfx" />
     <None Include="packages.config" />
     <None Include="_EventRegisterUsersGuide.docx" />

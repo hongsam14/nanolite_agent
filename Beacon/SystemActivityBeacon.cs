@@ -7,6 +7,7 @@ namespace Nanolite_agent.Beacon
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Globalization;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Nanolite_agent.Beacon.SystemActivity;
@@ -180,7 +181,7 @@ namespace Nanolite_agent.Beacon
                     }
 
                     this.processActivities.ProcessLaunch(processId, parentProcessId, target, eventlog);
-                    break;
+                    return;
                 case SysEventCode.ProcessTerminated:
                     {
                         processId = eventlog.TryGetValue("ProcessId", out JToken processIdToken) ? (long)processIdToken : -1;
@@ -192,24 +193,78 @@ namespace Nanolite_agent.Beacon
                     }
 
                     this.processActivities.ProcessTerminate(processId, eventlog);
+                    return;
+                case SysEventCode.ProcessTampering:
+                    {
+                        target = eventlog.TryGetValue("Image", out JToken targetToken) ? targetToken.ToString() : string.Empty;
+                    }
+
+                    break;
+                case SysEventCode.ProcessAccess:
+                case SysEventCode.CreateRemoteThread:
+                    {
+                        target = eventlog.TryGetValue("TargetImage", out JToken targetToken) ? targetToken.ToString() : string.Empty;
+                    }
+
+                    break;
+                case SysEventCode.ImageLoad:
+                case SysEventCode.DriverLoad:
+                    {
+                        target = eventlog.TryGetValue("ImageLoaded", out JToken targetToken) ? targetToken.ToString() : string.Empty;
+                    }
+
+                    break;
+                case SysEventCode.NetworkConnection:
+                    {
+                        target = eventlog.TryGetValue("DestinationIp", out JToken targetToken) ? targetToken.ToString() : string.Empty;
+                    }
+
+                    break;
+                case SysEventCode.DnsQuery:
+                    {
+                        target = eventlog.TryGetValue("QueryName", out JToken targetToken) ? targetToken.ToString() : string.Empty;
+                    }
+
+                    break;
+                case SysEventCode.RegistryAdd:
+                case SysEventCode.RegistrySet:
+                case SysEventCode.RegistryDelete:
+                    {
+                        target = eventlog.TryGetValue("TargetObject", out JToken targetToken) ? targetToken.ToString() : string.Empty;
+                    }
+
+                    break;
+                case SysEventCode.RegistryRename:
+                    {
+                        target = eventlog.TryGetValue("NewName", out JToken targetToken) ? targetToken.ToString() : string.Empty;
+                    }
+
+                    break;
+                case SysEventCode.FileCreate:
+                case SysEventCode.FileDelete:
+                case SysEventCode.FileModified:
+                case SysEventCode.CreateStreamHash:
+                    {
+                        target = eventlog.TryGetValue("TargetFilename", out JToken targetToken) ? targetToken.ToString() : string.Empty;
+                    }
+
                     break;
                 case SysEventCode.Unknown:
-                    // Unknown event code, do nothing
-                    break;
                 default:
-                    {
-                        processId = eventlog.TryGetValue("ProcessId", out JToken processIdToken) ? (long)processIdToken : -1;
-                        target = eventlog.TryGetValue("Target", out JToken targetToken) ? targetToken.ToString() : string.Empty;
-                    }
-
-                    if (processId < 0 || string.IsNullOrEmpty(target))
-                    {
-                        return;
-                    }
-
-                    this.processActivities.ProcessAction(processId, target, eventCode, eventlog);
-                    break;
+                    // Unknown event code, do nothing
+                    return;
             }
+
+            {
+                processId = eventlog.TryGetValue("ProcessId", out JToken processIdToken) ? (long)processIdToken : -1;
+            }
+
+            if (processId < 0 || string.IsNullOrEmpty(target))
+            {
+                return;
+            }
+
+            this.processActivities.ProcessAction(processId, target, eventCode, eventlog);
         }
     }
 }
