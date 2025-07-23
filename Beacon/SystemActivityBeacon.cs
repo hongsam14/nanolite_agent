@@ -7,12 +7,8 @@ namespace Nanolite_agent.Beacon
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
-    using System.Management;
-    using Google.Protobuf;
-    using Microsoft.Diagnostics.Tracing;
     using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
     using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Nanolite_agent.Config;
     using Nanolite_agent.Helper;
@@ -39,9 +35,11 @@ namespace Nanolite_agent.Beacon
     {
         private readonly string beaconName = "system_activity_beacon";
 
-        private readonly IHost host;
 
         // log exporter and processor
+        private readonly ILoggerFactory loggerFactory;
+        private readonly ILogger<SystemActivityBeacon> logger;
+
         private readonly OtlpLogExporter logExporter;
         private readonly BatchLogRecordExportProcessor logProcessor;
 
@@ -95,18 +93,15 @@ namespace Nanolite_agent.Beacon
                 this.logExporter = new OtlpLogExporter(option);
                 this.logProcessor = new BatchLogRecordExportProcessor(this.logExporter);
 
-                this.host = Host.CreateDefaultBuilder()
-                    .ConfigureServices((_, services) =>
+                this.loggerFactory = LoggerFactory.Create(loggingBuilder =>
+                {
+                    loggingBuilder.AddOpenTelemetry(options =>
                     {
-                        services.AddLogging(loggingBuilder =>
-                        {
-                            loggingBuilder.AddOpenTelemetry(options =>
-                            {
-                                options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName))
-                                    .AddProcessor(this.logProcessor);
-                            });
-                        });
-                    }).Build();
+                        options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName))
+                            .AddProcessor(this.logProcessor);
+                    });
+                });
+                this.logger = this.loggerFactory.CreateLogger<Nanolite_agent.Beacon.SystemActivityBeacon>();
             }
             catch (Exception e)
             {
@@ -133,9 +128,6 @@ namespace Nanolite_agent.Beacon
                 throw new NanoException.BeaconException("Beacon is not running.");
             }
 
-            // start Otel logger
-            this.host?.Start();
-
             // set running flag
             this.isRunning = true;
         }
@@ -157,8 +149,9 @@ namespace Nanolite_agent.Beacon
             this.tracerProvider?.ForceFlush();
             this.tracerProvider?.Shutdown();
 
-            // stop Otel logger
-            this.host?.StopAsync().Wait();
+            // dispose Otel log processor
+            this.loggerFactory.Dispose();
+
         }
 
         public void ProcessActivity(SysEventCode eventCode, JObject eventlog)

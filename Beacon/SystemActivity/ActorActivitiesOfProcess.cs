@@ -150,6 +150,9 @@ namespace Nanolite_agent.Beacon.SystemActivity
 
                 // Set tags for the activity
                 ActorTypeExtension.TagActorActivityAttribute(newActivity, this.activityType);
+
+                // Start the activity
+                newActivity.Start();
             }
 
             return actorActivityContext;

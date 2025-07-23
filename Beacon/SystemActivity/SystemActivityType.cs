@@ -84,6 +84,15 @@ namespace Nanolite_agent.Beacon.SystemActivity
         ACCEPT,
 
         /************************************************************************
+         * Module related actors
+         * **********************************************************************/
+
+        /// <summary>
+        /// Load actor. This actor represents module loading events such as sysmon-event-6, 7.
+        /// </summary>
+        LOAD,
+
+        /************************************************************************
          * File system related actors
          * **********************************************************************/
 

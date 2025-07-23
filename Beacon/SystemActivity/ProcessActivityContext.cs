@@ -39,6 +39,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
             }
 
             this.Process = process;
+            this.Activity = processActivity;
 
             this.rrActors = new ActorActivitiesOfProcess(source, ActorActivityType.READ_RECV);
             this.wsActors = new ActorActivitiesOfProcess(source, ActorActivityType.WRITE_SEND);
@@ -68,7 +69,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
         /// activity and context.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="obj"/> is <see langword="null"/>.</exception>
         /// <exception cref="NanoException.SystemActivityException">Thrown if the actor activity type derived from <paramref name="type"/> is unsupported.</exception>
-        public (Activity, ISystemContext) UpsertBehavior(Artifect obj, ActorType type)
+        public (Activity, ISystemContext) UpsertActivity(Artifect obj, ActorType type)
         {
             ActorActivityType actorActivityType;
             ActorActivityContext actorActivityContext;
@@ -104,6 +105,23 @@ namespace Nanolite_agent.Beacon.SystemActivity
             }
 
             return (actorActivityContext.Activity, actorActivityContext.Actor);
+        }
+
+        /// <summary>
+        /// Flushes all actors in the read/receive and write/send contexts, releasing associated resources.
+        /// </summary>
+        /// <remarks>This method clears the current activity and process context, which may release
+        /// resources and reset the state of the system. It should be called when the current processing cycle is
+        /// complete and resources need to be freed.</remarks>
+        public void Flush()
+        {
+            // Flush all actors in the read/receive and write/send contexts
+            this.rrActors.FlushActors();
+            this.wsActors.FlushActors();
+
+            // Clear the activity and process context to release resources
+            this.Activity = null;
+            this.Process = null;
         }
     }
 }

@@ -442,8 +442,16 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Beacon\SystemActivity.cs" />
+    <Compile Include="Beacon\SystemActivity\ActorActivityContext.cs" />
+    <Compile Include="Beacon\SystemActivity\ActorContext.cs" />
+    <Compile Include="Beacon\SystemActivity\ActorTypeExtension.cs" />
+    <Compile Include="Beacon\SystemActivity\Artifect.cs" />
+    <Compile Include="Beacon\SystemActivity\ActorActivitiesOfProcess.cs" />
     <Compile Include="Beacon\SystemActivityBeacon.cs" />
+    <Compile Include="Beacon\SystemActivity\ISystemContext.cs" />
+    <Compile Include="Beacon\SystemActivity\ProcessActivityContext.cs" />
+    <Compile Include="Beacon\SystemActivity\ProcessContext.cs" />
+    <Compile Include="Beacon\SystemActivity\SystemActivityType.cs" />
     <Compile Include="Config\Config.cs" />
     <Compile Include="Config\ConfigExtension.cs" />
     <Compile Include="Config\ConfigWrapper.cs" />
@@ -453,6 +461,7 @@
     <Compile Include="Helper\SysmonEventDecoder.cs" />
     <Compile Include="NanoException\BeaconException.cs" />
     <Compile Include="NanoException\ConfigException.cs" />
+    <Compile Include="NanoException\SystemActivityException.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\DebugMessages.Designer.cs">

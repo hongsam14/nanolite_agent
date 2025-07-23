@@ -12,7 +12,6 @@ namespace Nanolite_agent.Beacon.SystemActivity
     /// </summary>
     public class Artifect
     {
-        private readonly ArtifectType objectType;
         private readonly string objectName;
 
         /// <summary>
@@ -31,9 +30,14 @@ namespace Nanolite_agent.Beacon.SystemActivity
                 throw new ArgumentNullException(nameof(objectName), DebugMessages.SystemActivityNullException);
             }
 
-            this.objectType = objectType;
+            this.ObjectType = objectType;
             this.objectName = objectName;
         }
+
+        /// <summary>
+        /// Gets Object type of the artifect.
+        /// </summary>
+        public ArtifectType ObjectType { get; private set; }
 
         /// <summary>
         /// Gets provides a identifier for the artifect based on its type and name.
@@ -44,13 +48,13 @@ namespace Nanolite_agent.Beacon.SystemActivity
             get
             {
                 // Return null or empty if objectName is null/empty or objectType is Undefined
-                if (string.IsNullOrEmpty(this.objectName) || this.objectType == ArtifectType.Undefined)
+                if (string.IsNullOrEmpty(this.objectName) || this.ObjectType == ArtifectType.Undefined)
                 {
                     return null;
                 }
 
                 // Generate a unique ID for the artifect based on its type and name
-                return $"{this.objectName}@{this.objectType}";
+                return $"{this.objectName}@{this.ObjectType}";
             }
         }
     }
