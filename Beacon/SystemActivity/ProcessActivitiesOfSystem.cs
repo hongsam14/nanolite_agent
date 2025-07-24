@@ -128,6 +128,8 @@ namespace Nanolite_agent.Beacon.SystemActivity
 
             // increment log count
             sysContext.IncrementLogCount();
+
+            Console.WriteLine($"Process {processId} launched with image {image}.");
         }
 
         /// <summary>
@@ -176,6 +178,8 @@ namespace Nanolite_agent.Beacon.SystemActivity
 
                 // remove from processMap
                 this.processMap.Remove(processId);
+
+                Console.WriteLine($"Process {processId} terminated.");
             }
         }
 
@@ -207,7 +211,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
                 throw new ArgumentNullException(nameof(log), DebugMessages.SystemActivityNullException);
             }
 
-            actorType = SysmonEventCodeExtension.ToActorType(sysmonCode);
+            actorType = SysEventCodeExtension.ToActorType(sysmonCode);
             if (actorType == ActorType.Undefined)
             {
                 throw new NanoException.SystemActivityException($"Unsupported sysmon code: {sysmonCode}");
@@ -216,7 +220,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
             // check if process is in the map
             if (this.processMap.TryGetValue(processId, out ProcessActivityContext existActContext))
             {
-                Artifect actArtifect = new Artifect(SysmonEventCodeExtension.ToArtifectType(sysmonCode), target);
+                Artifect actArtifect = new Artifect(SysEventCodeExtension.ToArtifectType(sysmonCode), target);
 
                 // get existing process activity context
                 (activity, sysContext) = existActContext.UpsertActivity(actArtifect, actorType);
@@ -227,6 +231,8 @@ namespace Nanolite_agent.Beacon.SystemActivity
 
                 // increment log count
                 sysContext.IncrementLogCount();
+
+                Console.WriteLine($"Process {processId} action processed: {sysmonCode} on target {target}");
             }
         }
 

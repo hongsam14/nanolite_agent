@@ -4,10 +4,6 @@
 
 namespace Nanolite_agent.Beacon
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.Globalization;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Nanolite_agent.Beacon.SystemActivity;
@@ -21,6 +17,11 @@ namespace Nanolite_agent.Beacon
     using OpenTelemetry.Metrics;
     using OpenTelemetry.Resources;
     using OpenTelemetry.Trace;
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.Globalization;
+    using System.Net.Http;
     using static System.Net.Mime.MediaTypeNames;
 
     /// <summary>
@@ -86,6 +87,10 @@ namespace Nanolite_agent.Beacon
                 OtlpTraceExporter traceExporter = new OtlpTraceExporter(option);
                 this.traceProcessor = new BatchActivityExportProcessor(traceExporter);
                 this.tracerProvider = Sdk.CreateTracerProviderBuilder()
+                    .AddOtlpExporter(options =>
+                    {
+                        options.Endpoint = new Uri($"http://{config.CollectorIP}:{config.CollectorPort}");
+                    })
                     .SetResourceBuilder(ResourceBuilder.CreateDefault()
                     .AddService(serviceName))
                     .AddSource(serviceName)
@@ -125,13 +130,27 @@ namespace Nanolite_agent.Beacon
             }
 
             this.config = config;
+
+            // health check for the beacon
+            try
+            {
+                HttpClient httpClient = new HttpClient();
+
+                var response = httpClient.GetAsync($"http://{config.CollectorIP}:13133/health").GetAwaiter().GetResult();
+                Console.WriteLine($"Beacon health check response: {response.StatusCode}");
+            }
+            catch (Exception ex)
+            {
+                throw new NanoException.BeaconException("Beacon health check failed.", ex);
+            }
+
         }
 
         public void StartMonitoring()
         {
-            if (!this.isRunning)
+            if (this.isRunning)
             {
-                throw new NanoException.BeaconException("Beacon is not running.");
+                throw new NanoException.BeaconException("Beacon is already running.");
             }
 
             // set running flag
@@ -160,7 +179,42 @@ namespace Nanolite_agent.Beacon
             this.loggerFactory.Dispose();
         }
 
-        public void SystemActivity(SysEventCode eventCode, JObject eventlog)
+        public void CreateSystemObject(JObject eventlog)
+        {
+            long processId;
+            long parentProcessId;
+            string target;
+
+            {
+                processId = eventlog.TryGetValue("ProcessID", out JToken processIdToken) ? (long)processIdToken : -1;
+                parentProcessId = eventlog.TryGetValue("ParentID", out JToken parentProcessIdToken) ? (long)parentProcessIdToken : -1;
+                target = eventlog.TryGetValue("ImageFileName", out JToken targetToken) ? targetToken.ToString() : string.Empty;
+            }
+
+            if (processId < 0 || parentProcessId < 0 || string.IsNullOrEmpty(target))
+            {
+                return;
+            }
+
+            this.processActivities.ProcessLaunch(processId, parentProcessId, target, eventlog);
+        }
+
+        public void TerminateSystemObject(JObject eventlog)
+        {
+            long processId;
+            {
+                processId = eventlog.TryGetValue("ProcessID", out JToken processIdToken) ? (long)processIdToken : -1;
+            }
+
+            if (processId < 0)
+            {
+                return;
+            }
+
+            this.processActivities.ProcessTerminate(processId, eventlog);
+        }
+
+        public void ConsumeSystemActivity(SysEventCode eventCode, JObject eventlog)
         {
             long processId;
             string target;
@@ -170,29 +224,17 @@ namespace Nanolite_agent.Beacon
                 case SysEventCode.ProcessCreation:
                     long parentProcessId;
                     {
-                        processId = eventlog.TryGetValue("ProcessId", out JToken processIdToken) ? (long)processIdToken : -1;
                         parentProcessId = eventlog.TryGetValue("ParentProcessId", out JToken parentProcessIdToken) ? (long)parentProcessIdToken : -1;
                         target = eventlog.TryGetValue("Image", out JToken targetToken) ? targetToken.ToString() : string.Empty;
                     }
 
-                    if (processId < 0 || parentProcessId < 0 || string.IsNullOrEmpty(target))
+                    if (parentProcessId < 0 || string.IsNullOrEmpty(target))
                     {
                         return;
                     }
 
-                    this.processActivities.ProcessLaunch(processId, parentProcessId, target, eventlog);
-                    return;
+                    break;
                 case SysEventCode.ProcessTerminated:
-                    {
-                        processId = eventlog.TryGetValue("ProcessId", out JToken processIdToken) ? (long)processIdToken : -1;
-                    }
-
-                    if (processId < 0)
-                    {
-                        return;
-                    }
-
-                    this.processActivities.ProcessTerminate(processId, eventlog);
                     return;
                 case SysEventCode.ProcessTampering:
                     {
