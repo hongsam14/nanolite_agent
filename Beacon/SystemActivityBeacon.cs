@@ -77,22 +77,35 @@ namespace Nanolite_agent.Beacon
             // init Otel traceProvider
             try
             {
+                // health check for the beacon
+                try
+                {
+                    HttpClient httpClient = new HttpClient();
+
+                    var response = httpClient.GetAsync($"http://{config.CollectorIP}:13133/health").GetAwaiter().GetResult();
+                    Console.WriteLine($"Beacon health check response: {response.StatusCode}");
+                }
+                catch (Exception ex)
+                {
+                    throw new NanoException.BeaconException("Beacon health check failed.", ex);
+                }
+
+                ResourceBuilder resource = ResourceBuilder.CreateDefault().AddService(serviceName);
+
                 OtlpExporterOptions option = new OtlpExporterOptions
                 {
                     // check config is valid.
-                    Endpoint = new Uri($"http://{config.CollectorIP}:{config.CollectorPort}"),
+                    Endpoint = new Uri($"grpc://{config.CollectorIP}:{config.CollectorPort}"),
+                    Protocol = OtlpExportProtocol.Grpc,
                 };
 
                 // initialize traceProvider with OtlpTraceExporter & BatchActivityExportProcessor
                 OtlpTraceExporter traceExporter = new OtlpTraceExporter(option);
                 this.traceProcessor = new BatchActivityExportProcessor(traceExporter);
+
                 this.tracerProvider = Sdk.CreateTracerProviderBuilder()
-                    .AddOtlpExporter(options =>
-                    {
-                        options.Endpoint = new Uri($"http://{config.CollectorIP}:{config.CollectorPort}");
-                    })
-                    .SetResourceBuilder(ResourceBuilder.CreateDefault()
-                    .AddService(serviceName))
+                    .SetSampler(new AlwaysOnSampler())
+                    .SetResourceBuilder(resource)
                     .AddSource(serviceName)
                     .AddProcessor(this.traceProcessor)
                     .Build();
@@ -105,8 +118,12 @@ namespace Nanolite_agent.Beacon
                 {
                     loggingBuilder.AddOpenTelemetry(options =>
                     {
-                        options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName))
-                            .AddProcessor(this.logProcessor);
+                        options.IncludeScopes = true;
+                        options.IncludeFormattedMessage = true;
+                        options.ParseStateValues = true;
+
+                        options.SetResourceBuilder(resource);
+                        options.AddProcessor(this.logProcessor);
                     });
                 });
                 this.logger = this.loggerFactory.CreateLogger<Nanolite_agent.Beacon.SystemActivityBeacon>();
@@ -119,7 +136,7 @@ namespace Nanolite_agent.Beacon
             try
             {
                 // init Otel span source.
-                this.spanSource = new ActivitySource(name: config.Exporter);
+                this.spanSource = new ActivitySource(serviceName);
 
                 // initialize ProcessActivitiesOfSystem
                 this.processActivities = new ProcessActivitiesOfSystem(this.logger, this.spanSource);
@@ -130,20 +147,6 @@ namespace Nanolite_agent.Beacon
             }
 
             this.config = config;
-
-            // health check for the beacon
-            try
-            {
-                HttpClient httpClient = new HttpClient();
-
-                var response = httpClient.GetAsync($"http://{config.CollectorIP}:13133/health").GetAwaiter().GetResult();
-                Console.WriteLine($"Beacon health check response: {response.StatusCode}");
-            }
-            catch (Exception ex)
-            {
-                throw new NanoException.BeaconException("Beacon health check failed.", ex);
-            }
-
         }
 
         public void StartMonitoring()
@@ -173,10 +176,12 @@ namespace Nanolite_agent.Beacon
 
             // flush and shutdown Otel trace provider
             this.tracerProvider?.ForceFlush();
-            this.tracerProvider?.Shutdown();
 
             // dispose Otel log processor
             this.loggerFactory.Dispose();
+            this.tracerProvider?.Dispose();
+
+            this.tracerProvider?.Shutdown();
         }
 
         public void CreateSystemObject(JObject eventlog)

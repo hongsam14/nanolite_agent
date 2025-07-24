@@ -53,16 +53,22 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>4CFBEF0DF2A371E486154951E35114DB754FE173</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>1D752616AAB53D7183DA6E4F066CEFDCEE6BB068</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestKeyFile>nanolite-agent_2_TemporaryKey.pfx</ManifestKeyFile>
+    <ManifestKeyFile>nanolite-agent_TemporaryKey.pfx</ManifestKeyFile>
   </PropertyGroup>
   <PropertyGroup>
     <GenerateManifests>true</GenerateManifests>
   </PropertyGroup>
   <PropertyGroup>
     <SignManifests>true</SignManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>nanolite-agent_TemporaryKey.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Confluent.Kafka, Version=2.11.0.0, Culture=neutral, PublicKeyToken=12c514ca49093d1e, processorArchitecture=MSIL">
@@ -481,8 +487,6 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="config.yml" />
-    <None Include="nanolite-agent_1_TemporaryKey.pfx" />
-    <None Include="nanolite-agent_2_TemporaryKey.pfx" />
     <None Include="nanolite-agent_TemporaryKey.pfx" />
     <None Include="packages.config" />
     <None Include="_EventRegisterUsersGuide.docx" />

@@ -35,7 +35,7 @@ namespace Nanolite_agent
                 // init dummy config for debug
                 Config.ConfigWrapper dummyConfigWrapper = new Config.ConfigWrapper
                 {
-                    CollectorIP = "10.7.0.225",
+                    CollectorIP = "localhost",
                     CollectorPort = "4317",
                     Exporter = "TestBed",
                 };
@@ -51,6 +51,7 @@ namespace Nanolite_agent
                 Console.WriteLine(e.Message);
                 return;
             }
+
             // Init Beacon
             try
             {
