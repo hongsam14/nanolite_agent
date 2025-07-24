@@ -22,7 +22,7 @@ namespace Nanolite_agent.Helper
     /// <remarks>This class serves as a foundation for specific Sysmon event types, encapsulating shared
     /// properties such as timestamp, event code, event name, and source. Derived classes should implement the  <see
     /// cref="MetadataObject"/> property to provide event-specific metadata.</remarks>
-    public abstract class SysmonEventBase
+    public abstract class EventBase
     {
         /// <summary>
         /// Gets or sets the timestamp of the Sysmon event.
@@ -959,7 +959,7 @@ namespace Nanolite_agent.Helper
             // add common header
             eventObj.Add("EventID", (int)eventCode);
 
-            eventObj.Add("EventName", value: Helper.SysmonEventCodeExtension.ToFriendlyString(eventCode));
+            eventObj.Add("EventName", value: Helper.SysEventCodeExtension.ToFriendlyString(eventCode));
 
             eventObj.Add("Source", "sysmon");
 

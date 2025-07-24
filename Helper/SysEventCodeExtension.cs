@@ -11,7 +11,7 @@ namespace Nanolite_agent.Helper
     /// </summary>
     /// <remarks>This class includes methods to convert <see cref="SysEventCode"/> values to more readable
     /// string representations.</remarks>
-    public static class SysmonEventCodeExtension
+    public static class SysEventCodeExtension
     {
         /// <summary>
         /// Converts the <see cref="SysEventCode"/> value to a user-friendly string representation.
