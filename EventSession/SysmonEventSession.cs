@@ -23,15 +23,10 @@ namespace Nanolite_agent.EventSession
         private readonly SystemActivityBeacon beacon;
         private Task sessionTask;
 
-#if DEBUG
-        public SysmonEventSession()
-        {
-#else
         public SysmonEventSession(SystemActivityBeacon bcon)
         {
             // null check for Beacon
             this.beacon = bcon ?? throw new ArgumentNullException(nameof(bcon), "Beacon cannot be null");
-#endif
 
             // initialize TraceEventSession
             this.traceEventSession = new TraceEventSession(this.sessionName)
@@ -83,6 +78,7 @@ namespace Nanolite_agent.EventSession
 
         private void RegisterCallback()
         {
+            //this.traceEventSession.Source.Dynamic.All += this.ProcessData;
             this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "ProcessCreate(rule:ProcessCreate)", this.ProcessData);
             //this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Processaccessed(rule:ProcessAccess)", this.ProcessData);
             this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Processterminated(rule:ProcessTerminate)", this.ProcessData);
@@ -111,6 +107,9 @@ namespace Nanolite_agent.EventSession
 
         private void ProcessData(TraceEvent data)
         {
+            JToken metadataToken;
+            JObject metadata;
+
             JObject log = this.sysmonTracepoint.GetSysmonLog(data);
 
             // this means that the log does not pass the filter
@@ -119,10 +118,6 @@ namespace Nanolite_agent.EventSession
                 return;
             }
 
-#if DEBUG
-            // print log
-            Console.WriteLine(log.ToString(Newtonsoft.Json.Formatting.None));
-#else
             SysEventCode code = SysmonEventDecoder.GetEventCodeFromData(data);
 
             // send log to Beacon
@@ -130,14 +125,22 @@ namespace Nanolite_agent.EventSession
             {
                 try
                 {
-                    this.beacon.SystemActivity(code, log);
+                    // get metadata from Sysmon log
+                    if (log.TryGetValue("Metadata", out metadataToken))
+                    {
+                        // convert jtoken to JObject
+                        this.beacon.ConsumeSystemActivity(code, metadataToken.ToObject<JObject>());
+                    }
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine($"Error sending log: {e.Message}");
                 }
             }
-#endif
+            else
+            {
+                throw new NullReferenceException("Beacon is not initialized. Cannot add log.");
+            }
         }
     }
 }
