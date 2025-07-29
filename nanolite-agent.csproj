@@ -1,4 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="packages\Microsoft.Windows.CsWin32.0.3.183\build\net20\Microsoft.Windows.CsWin32.props" Condition="Exists('packages\Microsoft.Windows.CsWin32.0.3.183\build\net20\Microsoft.Windows.CsWin32.props')" />
+  <Import Project="packages\Microsoft.Windows.WDK.Win32Metadata.0.13.25-experimental\build\net20\Microsoft.Windows.WDK.Win32Metadata.props" Condition="Exists('packages\Microsoft.Windows.WDK.Win32Metadata.0.13.25-experimental\build\net20\Microsoft.Windows.WDK.Win32Metadata.props')" />
+  <Import Project="packages\Microsoft.Windows.SDK.Win32Metadata.63.0.31-preview\build\net20\Microsoft.Windows.SDK.Win32Metadata.props" Condition="Exists('packages\Microsoft.Windows.SDK.Win32Metadata.63.0.31-preview\build\net20\Microsoft.Windows.SDK.Win32Metadata.props')" />
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
@@ -28,15 +31,56 @@
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile />
   </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
+	<PlatformTarget>x64</PlatformTarget>
+	<DebugSymbols>true</DebugSymbols>
+	<DebugType>full</DebugType>
+	<Optimize>false</Optimize>
+	<OutputPath>bin\Debug\</OutputPath>
+	<DefineConstants>DEBUG;TRACE</DefineConstants>
+	<ErrorReport>prompt</ErrorReport>
+	<WarningLevel>4</WarningLevel>
+	<LangVersion>9.0</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
+	<PlatformTarget>x64</PlatformTarget>
+	<DebugType>pdbonly</DebugType>
+	<Optimize>true</Optimize>
+	<OutputPath>bin\Release\</OutputPath>
+	<DefineConstants>TRACE</DefineConstants>
+	<ErrorReport>prompt</ErrorReport>
+	<WarningLevel>4</WarningLevel>
+	<LangVersion>9.0</LangVersion>
+  </PropertyGroup>
   <ItemGroup>
     <Compile Update="Properties\DebugMessages.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>DebugMessages.resx</DependentUpon>
     </Compile>
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="4.14.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.14.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+    <PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.1.23" />
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.183">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="OpenTelemetry" Version="1.12.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.12.0" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.12.0" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="System.ComponentModel.Composition" Version="9.0.7" />
     <PackageReference Include="System.Management" Version="9.0.7" />
+    <PackageReference Include="YamlDotNet" Version="16.3.0" />
   </ItemGroup>
   <ItemGroup>
     <None Include="config.yml" />
@@ -58,20 +102,5 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>DebugMessages.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <Analyzer Include="packages\Microsoft.CodeAnalysis.Analyzers.4.14.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.Analyzers.dll" />
-    <Analyzer Include="packages\Microsoft.CodeAnalysis.Analyzers.4.14.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.CSharp.Analyzers.dll" />
-    <Analyzer Include="packages\Microsoft.CodeAnalysis.NetAnalyzers.9.0.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.CSharp.NetAnalyzers.dll" />
-    <Analyzer Include="packages\Microsoft.CodeAnalysis.NetAnalyzers.9.0.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.NetAnalyzers.dll" />
-    <Analyzer Include="packages\Microsoft.Windows.CsWin32.0.3.183\analyzers\cs\MessagePack.Annotations.dll" />
-    <Analyzer Include="packages\Microsoft.Windows.CsWin32.0.3.183\analyzers\cs\MessagePack.dll" />
-    <Analyzer Include="packages\Microsoft.Windows.CsWin32.0.3.183\analyzers\cs\Microsoft.Bcl.AsyncInterfaces.dll" />
-    <Analyzer Include="packages\Microsoft.Windows.CsWin32.0.3.183\analyzers\cs\Microsoft.Windows.CsWin32.dll" />
-    <Analyzer Include="packages\Microsoft.Windows.CsWin32.0.3.183\analyzers\cs\Microsoft.Windows.SDK.Win32Docs.dll" />
-    <Analyzer Include="packages\Microsoft.Windows.CsWin32.0.3.183\analyzers\cs\System.Text.Encodings.Web.dll" />
-    <Analyzer Include="packages\Microsoft.Windows.CsWin32.0.3.183\analyzers\cs\System.Text.Json.dll" />
-    <Analyzer Include="packages\StyleCop.Analyzers.1.1.118\analyzers\dotnet\cs\StyleCop.Analyzers.CodeFixes.dll" />
-    <Analyzer Include="packages\StyleCop.Analyzers.1.1.118\analyzers\dotnet\cs\StyleCop.Analyzers.dll" />
   </ItemGroup>
 </Project>
