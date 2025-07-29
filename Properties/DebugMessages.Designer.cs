@@ -124,7 +124,7 @@ namespace nanolite_agent.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Program terminated. Press any button to exit..
+        ///   Looks up a localized string similar to Program terminated..
         /// </summary>
         public static string ExitMessage {
             get {

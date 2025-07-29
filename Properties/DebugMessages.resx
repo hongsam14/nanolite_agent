@@ -139,7 +139,7 @@
     <value>Config path cannot be null or empty</value>
   </data>
   <data name="ExitMessage" xml:space="preserve">
-    <value>Program terminated. Press any button to exit.</value>
+    <value>Program terminated.</value>
     <comment>exit message</comment>
   </data>
   <data name="PrivilegeMessage" xml:space="preserve">

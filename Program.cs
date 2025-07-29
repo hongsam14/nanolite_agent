@@ -5,18 +5,22 @@
 namespace Nanolite_agent
 {
     using System;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft.Diagnostics.Tracing.Session;
     using Nanolite_agent.NanoException;
     using nanolite_agent.Properties;
 
     internal class Program
     {
-        private static void Main(string[] args)
+        static Config.Config config;
+        static Beacon.SystemActivityBeacon bcon;
+        static EventSession.SysmonEventSession sysmonSession;
+        static EventSession.KernelEventSession kernelSession;
+
+        private static async Task Main(string[] args)
         {
-            Config.Config config;
-            Beacon.SystemActivityBeacon bcon;
-            EventSession.SysmonEventSession sysmonSession;
-            EventSession.KernelEventSession kernelSession;
+            var cancelCompleted = new TaskCompletionSource();
 
             // check if the program is running as an administrator
             if (!TraceEventSession.IsElevated() ?? false)
@@ -73,11 +77,16 @@ namespace Nanolite_agent
             kernelSession = new EventSession.KernelEventSession(bcon);
 
             // Ctrl + C add event
-            Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)
+            Console.CancelKeyPress += (object sender, ConsoleCancelEventArgs e) =>
             {
-                sysmonSession.StopSession();
-                kernelSession.StopSession();
-                bcon.StopMonitoring();
+                Console.WriteLine("Ctrl + C pressed, stopping sessions and monitoring...");
+                e.Cancel = true; // Prevent the process from terminating immediately
+                _ = Task.Run(async () =>
+                {
+                    await CancelSequenceAsync();
+                    cancelCompleted.SetResult();
+                    Console.WriteLine("Monitoring stopped.");
+                });
             };
 
             // Start Beacon
@@ -87,12 +96,23 @@ namespace Nanolite_agent
             sysmonSession.StartSession();
             kernelSession.StartSession();
 
+            Console.WriteLine("Press Ctrl + C to stop monitoring and exit...");
+
             // Wait Session.
             sysmonSession.WaitSession();
             kernelSession.WaitSession();
 
+
+            await cancelCompleted.Task;
+
             Console.WriteLine(value: DebugMessages.ExitMessage);
-            Console.ReadKey();
+        }
+
+        static async Task CancelSequenceAsync()
+        {
+            sysmonSession.StopSession();
+            kernelSession.StopSession();
+            bcon.StopMonitoring();
         }
     }
 }
