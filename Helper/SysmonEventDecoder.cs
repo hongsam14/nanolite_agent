@@ -6,6 +6,7 @@ namespace Nanolite_agent.Helper
 {
     using System;
     using Microsoft.Diagnostics.Tracing;
+    using Nanolite_agent.NanoException;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
@@ -1074,7 +1075,7 @@ namespace Nanolite_agent.Helper
             typeObj = regEventtData.PayloadByName("EventType");
             if (typeObj == null)
             {
-                throw new EventSourceException("there is no EventType in the log");
+                throw new SystemActivityException("there is no EventType in the log");
             }
 
             switch (typeObj.ToString())
