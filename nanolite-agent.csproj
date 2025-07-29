@@ -58,7 +58,7 @@
     <LangVersion>9.0</LangVersion>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>5CD6E7D601B5C39B5572C1AAFFECFE06A15677FF</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>1D752616AAB53D7183DA6E4F066CEFDCEE6BB068</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup>
     <ManifestKeyFile>nanolite-agent_TemporaryKey.pfx</ManifestKeyFile>
@@ -68,6 +68,12 @@
   </PropertyGroup>
   <PropertyGroup>
     <SignManifests>true</SignManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>nanolite-agent_TemporaryKey.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Confluent.Kafka, Version=2.11.0.0, Culture=neutral, PublicKeyToken=12c514ca49093d1e, processorArchitecture=MSIL">
@@ -450,16 +456,30 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Beacon\SystemActivity\ActorActivityContext.cs" />
+    <Compile Include="Beacon\SystemActivity\ActorContext.cs" />
+    <Compile Include="Beacon\SystemActivity\ActorTypeExtension.cs" />
+    <Compile Include="Beacon\SystemActivity\Artifect.cs" />
+    <Compile Include="Beacon\SystemActivity\ActorActivitiesOfProcess.cs" />
     <Compile Include="Beacon\SystemActivityBeacon.cs" />
+    <Compile Include="Beacon\SystemActivity\ISystemContext.cs" />
+    <Compile Include="Beacon\SystemActivity\ProcessActivitiesOfSystem.cs" />
+    <Compile Include="Beacon\SystemActivity\ProcessActivityContext.cs" />
+    <Compile Include="Beacon\SystemActivity\ProcessContext.cs" />
+    <Compile Include="Beacon\SystemActivity\SystemActivityType.cs" />
     <Compile Include="Config\Config.cs" />
     <Compile Include="Config\ConfigExtension.cs" />
     <Compile Include="Config\ConfigWrapper.cs" />
     <Compile Include="EventSession\IEventSession.cs" />
+    <Compile Include="EventSession\KernelEventSession.cs" />
     <Compile Include="EventSession\SysmonEventSession.cs" />
+    <Compile Include="Helper\KernelEventDecoder.cs" />
     <Compile Include="Helper\SysEventCode.cs" />
+    <Compile Include="Helper\SysEventCodeExtension.cs" />
     <Compile Include="Helper\SysmonEventDecoder.cs" />
     <Compile Include="NanoException\BeaconException.cs" />
     <Compile Include="NanoException\ConfigException.cs" />
+    <Compile Include="NanoException\SystemActivityException.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\DebugMessages.Designer.cs">
@@ -469,6 +489,7 @@
     </Compile>
     <Compile Include="SelfInfo.cs" />
     <Compile Include="Tracepoint\BaseTracepoint.cs" />
+    <Compile Include="Tracepoint\KernelProcess.cs" />
     <Compile Include="Tracepoint\Sysmon.cs" />
   </ItemGroup>
   <ItemGroup>

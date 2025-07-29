@@ -142,6 +142,42 @@ namespace nanolite_agent.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Invalid operation at SystemActivity.
+        /// </summary>
+        public static string SystemActivityInvalidOperationException {
+            get {
+                return ResourceManager.GetString("SystemActivityInvalidOperationException", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid Actor Type.
+        /// </summary>
+        public static string SystemActivityInvalidType {
+            get {
+                return ResourceManager.GetString("SystemActivityInvalidType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Object cannot be null or empty.
+        /// </summary>
+        public static string SystemActivityNullException {
+            get {
+                return ResourceManager.GetString("SystemActivityNullException", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to upsert actor activity to actor map.
+        /// </summary>
+        public static string SystemActivityUpsertException {
+            get {
+                return ResourceManager.GetString("SystemActivityUpsertException", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Trace event data is not acceptable.
         /// </summary>
         public static string TracepointAcceptErrMessage {

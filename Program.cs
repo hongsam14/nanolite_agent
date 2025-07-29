@@ -16,6 +16,7 @@ namespace Nanolite_agent
             Config.Config config;
             Beacon.SystemActivityBeacon bcon;
             EventSession.SysmonEventSession sysmonSession;
+            EventSession.KernelEventSession kernelSession;
 
             // check if the program is running as an administrator
             if (!TraceEventSession.IsElevated() ?? false)
@@ -50,10 +51,6 @@ namespace Nanolite_agent
                 Console.WriteLine(e.Message);
                 return;
             }
-#if DEBUG
-            // start event sessions
-            sysmonSession = new EventSession.SysmonEventSession();
-#else
 
             // Init Beacon
             try
@@ -71,24 +68,26 @@ namespace Nanolite_agent
                 Console.WriteLine($"Beacon initialization failed: {e.Message}");
                 return;
             }
+
             // start event sessions
             sysmonSession = new EventSession.SysmonEventSession(bcon);
-#endif
+            kernelSession = new EventSession.KernelEventSession(bcon);
 
             // Ctrl + C add event
             Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)
             {
                 sysmonSession.StopSession();
-#if !DEBUG
+                kernelSession.StopSession();
                 bcon.StopMonitoring();
-#endif
             };
 
             // Start Session
             sysmonSession.StartSession();
+            kernelSession.StartSession();
 
             // Wait Session.
             sysmonSession.WaitSession();
+            kernelSession.WaitSession();
 
             Console.WriteLine(value: DebugMessages.ExitMessage);
             Console.ReadKey();

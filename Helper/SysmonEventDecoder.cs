@@ -22,7 +22,7 @@ namespace Nanolite_agent.Helper
     /// <remarks>This class serves as a foundation for specific Sysmon event types, encapsulating shared
     /// properties such as timestamp, event code, event name, and source. Derived classes should implement the  <see
     /// cref="MetadataObject"/> property to provide event-specific metadata.</remarks>
-    public abstract class SysmonEventBase
+    public abstract class EventBase
     {
         /// <summary>
         /// Gets or sets the timestamp of the Sysmon event.
@@ -435,6 +435,12 @@ namespace Nanolite_agent.Helper
     public sealed class DriverLoadMetadata : IMetadata
     {
         /// <summary>
+        /// Gets or sets the image loaded associated with the object.
+        /// </summary>
+        [JsonProperty(nameof(ImageLoaded))]
+        public string ImageLoaded { get; set; }
+
+        /// <summary>
         /// Gets or sets the hash values associated with the object.
         /// </summary>
         [JsonProperty(nameof(Hashes))]
@@ -502,6 +508,12 @@ namespace Nanolite_agent.Helper
         /// </summary>
         [JsonProperty(nameof(User))]
         public string User { get; set; }
+
+        /// <summary>
+        /// Gets or sets the image loaded associated with the object.
+        /// </summary>
+        [JsonProperty(nameof(ImageLoaded))]
+        public string ImageLoaded { get; set; }
     }
 
     /// <summary>
@@ -947,7 +959,7 @@ namespace Nanolite_agent.Helper
             // add common header
             eventObj.Add("EventID", (int)eventCode);
 
-            eventObj.Add("EventName", value: SysmonEventCodeExtensions.ToFriendlyString(eventCode));
+            eventObj.Add("EventName", value: Helper.SysEventCodeExtension.ToFriendlyString(eventCode));
 
             eventObj.Add("Source", "sysmon");
 
