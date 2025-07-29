@@ -56,7 +56,6 @@ namespace Nanolite_agent
             try
             {
                 bcon = new Beacon.SystemActivityBeacon(config);
-                bcon.StartMonitoring();
             }
             catch (BeaconException be)
             {
@@ -80,6 +79,9 @@ namespace Nanolite_agent
                 kernelSession.StopSession();
                 bcon.StopMonitoring();
             };
+
+            // Start Beacon
+            bcon.StartMonitoring();
 
             // Start Session
             sysmonSession.StartSession();

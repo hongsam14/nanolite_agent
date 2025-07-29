@@ -4,24 +4,21 @@
 
 namespace Nanolite_agent.Beacon
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.Net.Http;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Nanolite_agent.Beacon.SystemActivity;
-    using Nanolite_agent.Config;
     using Nanolite_agent.Helper;
     using Nanolite_agent.NanoException;
     using Newtonsoft.Json.Linq;
     using OpenTelemetry;
     using OpenTelemetry.Exporter;
     using OpenTelemetry.Logs;
-    using OpenTelemetry.Metrics;
     using OpenTelemetry.Resources;
     using OpenTelemetry.Trace;
-    using System;
-    using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.Globalization;
-    using System.Net.Http;
     using static System.Net.Mime.MediaTypeNames;
 
     /// <summary>
@@ -49,6 +46,8 @@ namespace Nanolite_agent.Beacon
         private readonly TracerProvider tracerProvider;
         private readonly BatchActivityExportProcessor traceProcessor;
 
+        private readonly ResourceBuilder resource;
+
         // span source for Otel
         private readonly ActivitySource spanSource;
 
@@ -71,7 +70,7 @@ namespace Nanolite_agent.Beacon
                 throw new ArgumentNullException(nameof(config));
             }
 
-            string serviceName = config.Exporter;
+            string serviceName = this.beaconName;
             this.isRunning = false;
 
             // init Otel traceProvider
@@ -90,12 +89,12 @@ namespace Nanolite_agent.Beacon
                     throw new NanoException.BeaconException("Beacon health check failed.", ex);
                 }
 
-                ResourceBuilder resource = ResourceBuilder.CreateDefault().AddService(serviceName);
+                this.resource = ResourceBuilder.CreateDefault().AddService(serviceName);
 
                 OtlpExporterOptions option = new OtlpExporterOptions
                 {
                     // check config is valid.
-                    Endpoint = new Uri($"grpc://{config.CollectorIP}:{config.CollectorPort}"),
+                    Endpoint = new Uri($"http://{config.CollectorIP}:{config.CollectorPort}"),
                     Protocol = OtlpExportProtocol.Grpc,
                 };
 
@@ -105,8 +104,13 @@ namespace Nanolite_agent.Beacon
 
                 this.tracerProvider = Sdk.CreateTracerProviderBuilder()
                     .SetSampler(new AlwaysOnSampler())
-                    .SetResourceBuilder(resource)
-                    .AddSource(serviceName)
+                    .SetResourceBuilder(this.resource)
+                    .AddSource(config.Exporter)
+                    .AddOtlpExporter(options =>
+                    {
+                        options.Endpoint = option.Endpoint;
+                        options.Protocol = option.Protocol;
+                    })
                     .AddProcessor(this.traceProcessor)
                     .Build();
 
@@ -122,8 +126,13 @@ namespace Nanolite_agent.Beacon
                         options.IncludeFormattedMessage = true;
                         options.ParseStateValues = true;
 
-                        options.SetResourceBuilder(resource);
+                        options.SetResourceBuilder(this.resource);
                         options.AddProcessor(this.logProcessor);
+                        options.AddOtlpExporter(otelOptions =>
+                        {
+                            otelOptions.Endpoint = option.Endpoint;
+                            otelOptions.Protocol = option.Protocol;
+                        });
                     });
                 });
                 this.logger = this.loggerFactory.CreateLogger<Nanolite_agent.Beacon.SystemActivityBeacon>();
@@ -136,7 +145,7 @@ namespace Nanolite_agent.Beacon
             try
             {
                 // init Otel span source.
-                this.spanSource = new ActivitySource(serviceName);
+                this.spanSource = new ActivitySource(config.Exporter);
 
                 // initialize ProcessActivitiesOfSystem
                 this.processActivities = new ProcessActivitiesOfSystem(this.logger, this.spanSource);
