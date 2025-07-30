@@ -127,12 +127,11 @@ namespace Nanolite_agent.Beacon.SystemActivity
 
             // print log information
             Activity.Current = activity;
+
             this.logger.LogInformation(log.ToString(Newtonsoft.Json.Formatting.None));
 
             // increment log count
             sysContext.IncrementLogCount();
-
-            Console.WriteLine($"Process {processId} launched with image {image}.");
         }
 
         /// <summary>
@@ -165,6 +164,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
 
                 // print log information
                 Activity.Current = activity;
+
                 this.logger.LogInformation(log.ToString(Newtonsoft.Json.Formatting.None));
 
                 // increment log count
@@ -228,6 +228,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
 
                 // print log information
                 Activity.Current = activity;
+
                 this.logger.LogInformation(log.ToString(Newtonsoft.Json.Formatting.None));
 
                 // increment log count
