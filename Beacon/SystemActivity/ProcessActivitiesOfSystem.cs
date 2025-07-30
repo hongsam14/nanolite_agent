@@ -233,8 +233,6 @@ namespace Nanolite_agent.Beacon.SystemActivity
 
                 // increment log count
                 sysContext.IncrementLogCount();
-
-                Console.WriteLine($"Process {processId} action processed: {sysmonCode} on target {target}");
             }
         }
 
