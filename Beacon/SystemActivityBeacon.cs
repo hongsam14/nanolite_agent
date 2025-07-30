@@ -34,7 +34,6 @@ namespace Nanolite_agent.Beacon
     {
         private readonly string beaconName = "system_activity_beacon";
 
-
         // log exporter and processor
         private readonly ILoggerFactory loggerFactory;
         private readonly ILogger<SystemActivityBeacon> logger;

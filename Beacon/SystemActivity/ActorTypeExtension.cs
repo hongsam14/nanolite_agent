@@ -51,10 +51,10 @@ namespace Nanolite_agent.Beacon.SystemActivity
             switch (destType)
             {
                 case ActorActivityType.READ_RECV:
-                    dest.SetTag("type", "read/recv");
+                    dest.SetTag("act.type", "read/recv");
                     break;
                 case ActorActivityType.WRITE_SEND:
-                    dest.SetTag("type", "write/send");
+                    dest.SetTag("act.type", "write/send");
                     break;
                 default:
                     // raise an exception for unsupported types
@@ -76,6 +76,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
             {
                 case ActorType.REMOTE_THREAD:
                 case ActorType.ACCEPT:
+                case ActorType.LOAD:
                     return true;
                 default:
                     return false;

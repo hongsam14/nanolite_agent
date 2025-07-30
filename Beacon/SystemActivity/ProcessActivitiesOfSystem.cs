@@ -87,6 +87,8 @@ namespace Nanolite_agent.Beacon.SystemActivity
                 // check if parent process exists
                 if (this.processMap.TryGetValue(parentProcessId, out ProcessActivityContext parentProcessContext))
                 {
+                    Activity.Current = parentProcessContext.Activity;
+
                     // if the parent process exists, we will create a new child activity with parent context.
                     activity = this.source.CreateActivity(
                         procContext.ContextID,
@@ -95,11 +97,14 @@ namespace Nanolite_agent.Beacon.SystemActivity
                 }
                 else
                 {
+                    // if the parent process does not exist, we will set the current activity to null.
+                    Activity.Current = null;
+
                     // create a new activity for the process without parent context
                     activity = this.source.CreateActivity(
                         procContext.ContextID,
                         ActivityKind.Internal,
-                        new ActivityContext(ActivityTraceId.CreateRandom(), ActivitySpanId.CreateRandom(), ActivityTraceFlags.Recorded));
+                        null);
                 }
 
                 // create a new process activity context
@@ -109,7 +114,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
                 (Activity, ISystemContext) result = actContext.UpsertActivity(procArtifect, ActorType.NOT_ACTOR);
 
                 // set tag of activity
-                activity.SetTag("tag", "launch");
+                activity.SetTag("act.type", "launch");
 
                 // start activity
                 activity.Start();
