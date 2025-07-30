@@ -45,9 +45,6 @@ namespace Nanolite_agent.Beacon
 
         private readonly ResourceBuilder resource;
 
-        // nano-agent config file
-        private readonly Nanolite_agent.Config.Config config;
-
         private readonly ProcessActivitiesOfSystem processActivities;
 
         // flag to check if beacon is running
@@ -138,8 +135,6 @@ namespace Nanolite_agent.Beacon
             {
                 throw new NanoException.BeaconException("error while construct beacon.", e);
             }
-
-            this.config = config;
         }
 
         public void StartMonitoring()
