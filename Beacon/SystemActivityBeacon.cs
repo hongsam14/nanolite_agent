@@ -101,33 +101,23 @@ namespace Nanolite_agent.Beacon
                     .SetSampler(new AlwaysOnSampler())
                     .SetResourceBuilder(this.resource)
                     .AddSource(config.Exporter)
-                    .AddOtlpExporter(options =>
-                    {
-                        options.Endpoint = option.Endpoint;
-                        options.Protocol = option.Protocol;
-                    })
-                    .AddProcessor(this.traceProcessor)
+                    .AddProcessor(traceProcessor)
                     .Build();
 
                 // initialize log Exporter with OtlpLogExporter & BatchLogExportProcessor
                 this.logExporter = new OtlpLogExporter(option);
-                this.logProcessor = new BatchLogRecordExportProcessor(this.logExporter);
+                BatchLogRecordExportProcessor logProcessor = new BatchLogRecordExportProcessor(this.logExporter);
 
                 this.loggerFactory = LoggerFactory.Create(loggingBuilder =>
                 {
                     loggingBuilder.AddOpenTelemetry(options =>
                     {
-                        options.IncludeScopes = true;
-                        options.IncludeFormattedMessage = true;
-                        options.ParseStateValues = true;
+                        options.IncludeScopes = false;
+                        options.IncludeFormattedMessage = false;
+                        options.ParseStateValues = false;
 
                         options.SetResourceBuilder(this.resource);
-                        options.AddProcessor(this.logProcessor);
-                        options.AddOtlpExporter(otelOptions =>
-                        {
-                            otelOptions.Endpoint = option.Endpoint;
-                            otelOptions.Protocol = option.Protocol;
-                        });
+                        options.AddProcessor(logProcessor);
                     });
                 });
                 this.logger = this.loggerFactory.CreateLogger<Nanolite_agent.Beacon.SystemActivityBeacon>();
