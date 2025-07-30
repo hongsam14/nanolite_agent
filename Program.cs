@@ -4,23 +4,57 @@
 
 namespace Nanolite_agent
 {
+    using Microsoft.Diagnostics.Tracing.Session;
+    using nanolite_agent.Properties;
+    using Nanolite_agent.NanoException;
     using System;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Diagnostics.Tracing.Session;
-    using Nanolite_agent.NanoException;
-    using nanolite_agent.Properties;
 
     internal class Program
     {
-        static Config.Config config;
-        static Beacon.SystemActivityBeacon bcon;
-        static EventSession.SysmonEventSession sysmonSession;
-        static EventSession.KernelEventSession kernelSession;
+        private static Config.Config config;
+        private static Beacon.SystemActivityBeacon bcon;
+        private static EventSession.SysmonEventSession sysmonSession;
+        private static EventSession.KernelEventSession kernelSession;
+
+        private static readonly string logo = @"
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡀⠀⠀⣀⣀⡀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣤⣶⣿⣽⣶⣾⣿⣿⣿⣿⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⠂⣰⣿⣿⡿⠟⠋⣿⣿⣿⣿⣿⣿⠏⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣶⣿⣣⣾⡿⠛⢉⣤⣶⣿⣿⣿⣿⣿⡿⠃⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⡄⣿⣿⣿⠟⢁⣤⣾⣿⣿⣿⣿⣿⣭⠥⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⣠⣾⣿⣷⡿⠋⣀⣴⣿⣿⣿⣿⣿⣷⠌⠉⠁⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⢀⣼⣿⣿⣿⠟⢀⣼⣿⣿⣿⣿⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⢀⣾⣿⣿⡿⠃⣰⣿⣿⣿⣿⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠰⣄⣾⣿⣿⡿⠁⣼⣿⣿⣿⣿⣿⡟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⣀⢻⣿⣿⡟⢀⣾⣿⢻⣿⠻⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠙⢿⣿⡿⠀⣾⣿⣿⠈⠟⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⢰⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⣼⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+ ____    ____  ____    ___   _      ____  ______    ___ 
+|    \  /    ||    \  /   \ | |    |    ||      |  /  _]
+|  _  ||  o  ||  _  ||     || |     |  | |      | /  [_ 
+|  |  ||     ||  |  ||  O  || |___  |  | |_|  |_||    _]
+|  |  ||  _  ||  |  ||     ||     | |  |   |  |  |   [_ 
+|  |  ||  |  ||  |  ||     ||     | |  |   |  |  |     |
+|__|__||__|__||__|__| \___/ |_____||____|  |__|  |_____|
+c) 2025 Nanolite Agent by shhong ENKI Corp)
+";
 
         private static async Task Main(string[] args)
         {
             var cancelCompleted = new TaskCompletionSource();
+
+            // print ascii logo with color yellow
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.OutputEncoding = Encoding.Unicode;
+            Console.WriteLine(logo);
+            Console.ResetColor();
+            Console.OutputEncoding = Encoding.UTF8;
 
             // check if the program is running as an administrator
             if (!TraceEventSession.IsElevated() ?? false)
