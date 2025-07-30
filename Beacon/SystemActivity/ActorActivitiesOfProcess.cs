@@ -29,7 +29,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
         /// <param name="activityType">The type of actor activity. Must not be <see cref="ActorActivityType.UNDEFINED"/>.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="source"/> is <see langword="null"/> or <paramref name="activityType"/> is <see
         /// cref="ActorActivityType.UNDEFINED"/>.</exception>
-        public ActorActivitiesOfProcess(ActivitySource source, ActorActivityType activityType)
+        public ActorActivitiesOfProcess(in ActivitySource source, in ActorActivityType activityType)
         {
             // check activityType is defined
             if (source == null || activityType == ActorActivityType.UNDEFINED)
@@ -104,7 +104,9 @@ namespace Nanolite_agent.Beacon.SystemActivity
         public ActorActivityContext UpsertActor(Activity processActivity, Artifect artifect, ActorType type)
         {
             // null checfor artifect and type
-            if (processActivity == null || artifect == null || type == ActorType.Undefined)
+            ArgumentNullException.ThrowIfNull(processActivity);
+            ArgumentNullException.ThrowIfNull(artifect);
+            if (type == ActorType.Undefined)
             {
                 throw new ArgumentNullException(nameof(artifect), DebugMessages.SystemActivityNullException);
             }

@@ -40,16 +40,11 @@ namespace Nanolite_agent.Beacon
         private readonly ILogger<SystemActivityBeacon> logger;
 
         private readonly OtlpLogExporter logExporter;
-        private readonly BatchLogRecordExportProcessor logProcessor;
 
         // trace provider, processor and span source
         private readonly TracerProvider tracerProvider;
-        private readonly BatchActivityExportProcessor traceProcessor;
 
         private readonly ResourceBuilder resource;
-
-        // span source for Otel
-        private readonly ActivitySource spanSource;
 
         // nano-agent config file
         private readonly Nanolite_agent.Config.Config config;
@@ -63,7 +58,7 @@ namespace Nanolite_agent.Beacon
         /// Initializes a new instance of the <see cref="SystemActivityBeacon"/> class.
         /// </summary>
         /// <param name="config">config.yml file.</param>
-        public SystemActivityBeacon(Nanolite_agent.Config.Config config)
+        public SystemActivityBeacon(in Nanolite_agent.Config.Config config)
         {
             if (config == null)
             {
@@ -100,7 +95,7 @@ namespace Nanolite_agent.Beacon
 
                 // initialize traceProvider with OtlpTraceExporter & BatchActivityExportProcessor
                 OtlpTraceExporter traceExporter = new OtlpTraceExporter(option);
-                this.traceProcessor = new BatchActivityExportProcessor(traceExporter);
+                BatchActivityExportProcessor traceProcessor = new BatchActivityExportProcessor(traceExporter);
 
                 this.tracerProvider = Sdk.CreateTracerProviderBuilder()
                     .SetSampler(new AlwaysOnSampler())
@@ -145,10 +140,10 @@ namespace Nanolite_agent.Beacon
             try
             {
                 // init Otel span source.
-                this.spanSource = new ActivitySource(config.Exporter);
+                ActivitySource spanSource = new ActivitySource(config.Exporter);
 
                 // initialize ProcessActivitiesOfSystem
-                this.processActivities = new ProcessActivitiesOfSystem(this.logger, this.spanSource);
+                this.processActivities = new ProcessActivitiesOfSystem(this.logger, spanSource);
             }
             catch (Exception e)
             {
@@ -199,11 +194,9 @@ namespace Nanolite_agent.Beacon
             long parentProcessId;
             string target;
 
-            {
-                processId = eventlog.TryGetValue("ProcessID", out JToken processIdToken) ? (long)processIdToken : -1;
-                parentProcessId = eventlog.TryGetValue("ParentID", out JToken parentProcessIdToken) ? (long)parentProcessIdToken : -1;
-                target = eventlog.TryGetValue("ImageFileName", out JToken targetToken) ? targetToken.ToString() : string.Empty;
-            }
+            processId = eventlog.TryGetValue("ProcessID", out JToken processIdToken) ? (long)processIdToken : -1;
+            parentProcessId = eventlog.TryGetValue("ParentID", out JToken parentProcessIdToken) ? (long)parentProcessIdToken : -1;
+            target = eventlog.TryGetValue("ImageFileName", out JToken targetToken) ? targetToken.ToString() : string.Empty;
 
             if (processId < 0 || parentProcessId < 0 || string.IsNullOrEmpty(target))
             {
@@ -216,9 +209,8 @@ namespace Nanolite_agent.Beacon
         public void TerminateSystemObject(JObject eventlog)
         {
             long processId;
-            {
-                processId = eventlog.TryGetValue("ProcessID", out JToken processIdToken) ? (long)processIdToken : -1;
-            }
+
+            processId = eventlog.TryGetValue("ProcessID", out JToken processIdToken) ? (long)processIdToken : -1;
 
             if (processId < 0)
             {

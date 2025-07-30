@@ -23,7 +23,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
     {
         private readonly ActivitySource source;
 
-        private readonly ILogger logger;
+        private readonly ILogger<SystemActivityBeacon> logger;
 
         private Dictionary<long, ProcessActivityContext> processMap;
 
@@ -33,12 +33,10 @@ namespace Nanolite_agent.Beacon.SystemActivity
         /// <param name="logger">The logger used to record system activity events. Cannot be <see langword="null"/>.</param>
         /// <param name="source">The activity source for generating telemetry data. Cannot be <see langword="null"/>.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="logger"/> or <paramref name="source"/> is <see langword="null"/>.</exception>
-        public ProcessActivitiesOfSystem(ILogger<SystemActivityBeacon> logger, ActivitySource source)
+        public ProcessActivitiesOfSystem(in ILogger<SystemActivityBeacon> logger, in ActivitySource source)
         {
-            if (logger == null || source == null)
-            {
-                throw new ArgumentNullException(nameof(source), DebugMessages.SystemActivityNullException);
-            }
+            ArgumentNullException.ThrowIfNull(logger);
+            ArgumentNullException.ThrowIfNull(source);
 
             this.source = source;
             this.logger = logger;
@@ -178,8 +176,6 @@ namespace Nanolite_agent.Beacon.SystemActivity
 
                 // remove from processMap
                 this.processMap.Remove(processId);
-
-                Console.WriteLine($"Process {processId} terminated.");
             }
         }
 

@@ -31,7 +31,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
         /// <param name="process">The <see cref="ProcessContext"/> associated with the process. Cannot be <see langword="null"/>.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="source"/>, <paramref name="processActivity"/>, or <paramref name="process"/> is
         /// <see langword="null"/>.</exception>
-        public ProcessActivityContext(ActivitySource source, Activity processActivity, ProcessContext process)
+        public ProcessActivityContext(in ActivitySource source, in Activity processActivity, in ProcessContext process)
         {
             if (source == null || processActivity == null || process == null)
             {
