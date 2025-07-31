@@ -4,15 +4,21 @@
 
 namespace Nanolite_agent
 {
-    using Microsoft.Diagnostics.Tracing.Session;
-    using nanolite_agent.Properties;
-    using Nanolite_agent.NanoException;
     using System;
     using System.Text;
-    using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Diagnostics.Tracing.Session;
+    using Nanolite_agent.NanoException;
+    using nanolite_agent.Properties;
 
-    internal class Program
+    /// <summary>
+    /// Represents the entry point of the application, responsible for initializing configurations, starting monitoring
+    /// sessions, and handling application lifecycle events.
+    /// </summary>
+    /// <remarks>This class initializes the necessary components, such as configuration, beacon, and event
+    /// sessions, and manages the application's main execution flow. It also handles user interruptions (e.g., Ctrl+C)
+    /// to gracefully stop monitoring and terminate the application.</remarks>
+    internal static class Program
     {
         private static Config.Config config;
         private static Beacon.SystemActivityBeacon bcon;
@@ -20,30 +26,30 @@ namespace Nanolite_agent
         private static EventSession.KernelEventSession kernelSession;
 
         private static readonly string logo = @"
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡀⠀⠀⣀⣀⡀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣤⣶⣿⣽⣶⣾⣿⣿⣿⣿⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⠂⣰⣿⣿⡿⠟⠋⣿⣿⣿⣿⣿⣿⠏⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣶⣿⣣⣾⡿⠛⢉⣤⣶⣿⣿⣿⣿⣿⡿⠃⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⡄⣿⣿⣿⠟⢁⣤⣾⣿⣿⣿⣿⣿⣭⠥⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⣠⣾⣿⣷⡿⠋⣀⣴⣿⣿⣿⣿⣿⣷⠌⠉⠁⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⢀⣼⣿⣿⣿⠟⢀⣼⣿⣿⣿⣿⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⢀⣾⣿⣿⡿⠃⣰⣿⣿⣿⣿⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠰⣄⣾⣿⣿⡿⠁⣼⣿⣿⣿⣿⣿⡟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⣀⢻⣿⣿⡟⢀⣾⣿⢻⣿⠻⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠙⢿⣿⡿⠀⣾⣿⣿⠈⠟⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⢰⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⣼⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
- ____    ____  ____    ___   _      ____  ______    ___ 
-|    \  /    ||    \  /   \ | |    |    ||      |  /  _]
-|  _  ||  o  ||  _  ||     || |     |  | |      | /  [_ 
-|  |  ||     ||  |  ||  O  || |___  |  | |_|  |_||    _]
-|  |  ||  _  ||  |  ||     ||     | |  |   |  |  |   [_ 
-|  |  ||  |  ||  |  ||     ||     | |  |   |  |  |     |
-|__|__||__|__||__|__| \___/ |_____||____|  |__|  |_____|
-c) 2025 Nanolite Agent by shhong ENKI Corp)
-";
+    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡀⠀⠀⣀⣀⡀⠀
+    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣤⣶⣿⣽⣶⣾⣿⣿⣿⣿⠀
+    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⠂⣰⣿⣿⡿⠟⠋⣿⣿⣿⣿⣿⣿⠏⠀
+    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣶⣿⣣⣾⡿⠛⢉⣤⣶⣿⣿⣿⣿⣿⡿⠃⠀⠀
+    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⡄⣿⣿⣿⠟⢁⣤⣾⣿⣿⣿⣿⣿⣭⠥⠀⠀⠀⠀⠀
+    ⠀⠀⠀⠀⠀⠀⠀⣠⣾⣿⣷⡿⠋⣀⣴⣿⣿⣿⣿⣿⣷⠌⠉⠁⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠀⠀⠀⢀⣼⣿⣿⣿⠟⢀⣼⣿⣿⣿⣿⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠀⠀⢀⣾⣿⣿⡿⠃⣰⣿⣿⣿⣿⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠰⣄⣾⣿⣿⡿⠁⣼⣿⣿⣿⣿⣿⡟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⣀⢻⣿⣿⡟⢀⣾⣿⢻⣿⠻⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠙⢿⣿⡿⠀⣾⣿⣿⠈⠟⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠀⠀⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠀⢰⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠀⣼⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠀⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+     ____    ____  ____    ___   _      ____  ______    ___ 
+    |    \  /    ||    \  /   \ | |    |    ||      |  /  _]
+    |  _  ||  o  ||  _  ||     || |     |  | |      | /  [_ 
+    |  |  ||     ||  |  ||  O  || |___  |  | |_|  |_||    _]
+    |  |  ||  _  ||  |  ||     ||     | |  |   |  |  |   [_ 
+    |  |  ||  |  ||  |  ||     ||     | |  |   |  |  |     |
+    |__|__||__|__||__|__| \___/ |_____||____|  |__|  |_____|
+    c) 2025 Nanolite Agent by shhong ENKI Corp)
+    ";
 
         private static async Task Main(string[] args)
         {
@@ -136,13 +142,12 @@ c) 2025 Nanolite Agent by shhong ENKI Corp)
             sysmonSession.WaitSession();
             kernelSession.WaitSession();
 
-
             await cancelCompleted.Task;
 
             Console.WriteLine(value: DebugMessages.ExitMessage);
         }
 
-        static async Task CancelSequenceAsync()
+        private static async Task CancelSequenceAsync()
         {
             sysmonSession.StopSession();
             kernelSession.StopSession();

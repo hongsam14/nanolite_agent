@@ -106,6 +106,15 @@ namespace nanolite_agent.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Cannot find config file..
+        /// </summary>
+        public static string ConfigFileNotFoundErrMessage {
+            get {
+                return ResourceManager.GetString("ConfigFileNotFoundErrMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Error while read config file.
         /// </summary>
         public static string ConfigFileReadErrMessage {

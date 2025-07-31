@@ -132,6 +132,10 @@
   <data name="ConfigFileErrMessage" xml:space="preserve">
     <value>Config file is empty</value>
   </data>
+  <data name="ConfigFileNotFoundErrMessage" xml:space="preserve">
+    <value>Cannot find config file.</value>
+    <comment>Cannot find config file.</comment>
+  </data>
   <data name="ConfigFileReadErrMessage" xml:space="preserve">
     <value>Error while read config file</value>
   </data>
