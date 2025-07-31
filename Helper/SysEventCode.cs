@@ -60,6 +60,11 @@ namespace Nanolite_agent.Helper
         ImageLoad,
 
         /// <summary>
+        /// Represents the event code for a network connection detected.
+        /// </summary>
+        RawAccessReadDetected,
+
+        /// <summary>
         /// Represents the event code for a file create.
         /// </summary>
         FileCreate,

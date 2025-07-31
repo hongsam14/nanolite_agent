@@ -1,4 +1,4 @@
-﻿// <copyright file="SysmonEventCodeExtension.cs" company="PlaceholderCompany">
+﻿// <copyright file="SysEventCodeExtension.cs" company="PlaceholderCompany">
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
@@ -28,6 +28,8 @@ namespace Nanolite_agent.Helper
                     return "process_access";
                 case SysEventCode.ProcessTerminated:
                     return "process_terminated";
+                case SysEventCode.ProcessTampering:
+                    return "process_tampering";
                 case SysEventCode.CreateRemoteThread:
                     return "create_remote_thread";
                 case SysEventCode.NetworkConnection:
@@ -46,6 +48,8 @@ namespace Nanolite_agent.Helper
                     return "create_stream_hash";
                 case SysEventCode.FileDelete:
                     return "file_delete";
+                case SysEventCode.RawAccessReadDetected:
+                    return "raw_access_read_detected";
                 case SysEventCode.RegistryAdd:
                     return "registry_add";
                 case SysEventCode.RegistryDelete:
@@ -91,6 +95,8 @@ namespace Nanolite_agent.Helper
                     return ActorType.MODIFY;
                 case SysEventCode.CreateStreamHash:
                     return ActorType.CREATE_STREAM_HASH;
+                case SysEventCode.RawAccessReadDetected:
+                    return ActorType.RAW_ACCESS_READ_DETECTED;
                 case SysEventCode.RegistryAdd:
                     return ActorType.REG_ADD;
                 case SysEventCode.RegistryDelete:
@@ -130,6 +136,7 @@ namespace Nanolite_agent.Helper
                 case SysEventCode.FileModified:
                 case SysEventCode.FileDelete:
                 case SysEventCode.CreateStreamHash:
+                case SysEventCode.RawAccessReadDetected:
                     return ArtifectType.File;
                 case SysEventCode.RegistryAdd:
                 case SysEventCode.RegistryDelete:

@@ -6,54 +6,17 @@ namespace Nanolite_agent.Helper
 {
     using System;
     using Microsoft.Diagnostics.Tracing;
-    using Newtonsoft.Json;
+    using Nanolite_agent.EventModel;
     using Newtonsoft.Json.Linq;
 
     /// <summary>
-    /// Represents metadata for the creation of a kernel process, event id == 1.
+    /// Provides methods for decoding kernel event trace data into structured JSON objects.
     /// </summary>
-    public sealed class KernelProcessCreationMetadata : IMetadata
-    {
-        /// <summary>
-        /// Gets or sets the unique identifier for the process.
-        /// </summary>
-        [JsonProperty(nameof(ProcessID))]
-        public long ProcessID { get; set; }
-
-        /// <summary>
-        /// Gets or sets the unique identifier for the parent process.
-        /// </summary>
-        [JsonProperty(nameof(ParentID))]
-        public long ParentID { get; set; }
-
-        /// <summary>
-        /// Gets or sets the unique identifier for the image name.
-        /// </summary>
-        [JsonProperty(nameof(ImageFileName))]
-        public string ImageFileName { get; set; }
-    }
-
-    public sealed class KernelProcessStopMetadata : IMetadata
-    {
-        /// <summary>
-        /// Gets or sets the unique identifier for the process.
-        /// </summary>
-        [JsonProperty(nameof(ProcessID))]
-        public long ProcessID { get; set; }
-
-        /// <summary>
-        /// Gets or sets the unique identifier for the image name.
-        /// </summary>
-        [JsonProperty(nameof(ImageFileName))]
-        public string ImageFileName { get; set; }
-
-        /// <summary>
-        /// Gets or sets the exit code of the process.
-        /// </summary>
-        [JsonProperty(nameof(ExitCode))]
-        public int ExitCode { get; set; }
-    }
-
+    /// <remarks>This class includes static methods for decoding specific types of kernel events, such as
+    /// process creation and process termination events, from trace event data. The decoded events are returned as JSON
+    /// objects for further processing or analysis. <para> The methods in this class are designed to handle trace events
+    /// that conform to the expected structure for kernel events. If the input trace event does not match the expected
+    /// structure, the behavior of the decoding methods may be undefined. </para></remarks>
     public static class KernelEventDecoder
     {
         /// <summary>
@@ -118,7 +81,6 @@ namespace Nanolite_agent.Helper
             eventObj.Add("Metadata", metadataObj);
             return eventObj;
         }
-
 
         private static JObject DecodeKernelMetadata<T>(TraceEvent origin)
             where T : IMetadata
