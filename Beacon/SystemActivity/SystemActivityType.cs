@@ -69,6 +69,11 @@ namespace Nanolite_agent.Beacon.SystemActivity
         /// </summary>
         TAMPERING,
 
+        /// <summary>
+        /// Access actor. This actor represents sysmon-event-10
+        /// </summary>
+        ACCESS,
+
         /************************************************************************
          * Network related actors
          * **********************************************************************/
@@ -115,6 +120,11 @@ namespace Nanolite_agent.Beacon.SystemActivity
         /// Create stream hash actor. This actor represents sysmon-event-15.
         /// </summary>
         CREATE_STREAM_HASH,
+
+        /// <summary>
+        /// Raw access read detected actor. This actor represents sysmon-event-9.
+        /// </summary>
+        RAW_ACCESS_READ_DETECTED,
 
         /* **********************************************************************
          * Registry related actors

@@ -77,6 +77,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
                 case ActorType.REMOTE_THREAD:
                 case ActorType.ACCEPT:
                 case ActorType.LOAD:
+                case ActorType.RAW_ACCESS_READ_DETECTED:
                     return true;
                 default:
                     return false;
@@ -94,6 +95,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
             switch (type)
             {
                 case ActorType.TAMPERING:
+                case ActorType.ACCESS:
                 case ActorType.CONNECT:
                 case ActorType.CREATE:
                 case ActorType.DELETE:
@@ -108,6 +110,5 @@ namespace Nanolite_agent.Beacon.SystemActivity
                     return false;
             }
         }
-
     }
 }

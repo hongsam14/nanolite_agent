@@ -1,4 +1,4 @@
-﻿// <copyright file="ProcessActivity.cs" company="PlaceholderCompany">
+﻿// <copyright file="ProcessActivityContext.cs" company="PlaceholderCompany">
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 

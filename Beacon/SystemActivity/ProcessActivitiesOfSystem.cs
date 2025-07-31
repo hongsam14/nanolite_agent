@@ -7,6 +7,8 @@ namespace Nanolite_agent.Beacon.SystemActivity
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using Microsoft.Diagnostics.Tracing;
+    using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
     using Microsoft.Extensions.Logging;
     using Nanolite_agent.Helper;
     using nanolite_agent.Properties;
@@ -44,30 +46,44 @@ namespace Nanolite_agent.Beacon.SystemActivity
         }
 
         /// <summary>
-        /// Initiates and logs the launch of a process, creating or updating the associated activity context.
+        /// Handles the launch of a process, creating or updating the process activity context,
+        /// logging the event, and associating it with its parent if available.
         /// </summary>
-        /// <remarks>This method manages the creation or updating of a process activity context within the
-        /// system. If the process already exists in the map, its activity context is updated. Otherwise, a new activity
-        /// context is created, potentially linking it to a parent process if specified. The method logs the process
-        /// launch and increments the log count in the system context.</remarks>
         /// <param name="processId">The unique identifier of the process being launched.</param>
-        /// <param name="parentProcessId">The unique identifier of the parent process, if any.</param>
-        /// <param name="image">The image name of the process. Cannot be null or empty.</param>
-        /// <param name="log">The log information associated with the process launch. Cannot be null.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="image"/> is null or empty, or if <paramref name="log"/> is null.</exception>
+        /// <param name="parentProcessId">The unique identifier of the parent process.</param>
+        /// <param name="image">The image name or path of the process.</param>
+        /// <param name="eventDecoderFunc">A function to decode the trace event into a <see cref="JObject"/> log entry.</param>
+        /// <param name="sysEvent">The system trace event associated with the process launch.</param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown if <paramref name="image"/>, <paramref name="eventDecoderFunc"/>, or <paramref name="sysEvent"/> is <c>null</c>.
+        /// </exception>
         public void ProcessLaunch(
             long processId,
             long parentProcessId,
             string image,
-            JObject log)
+            Func<ProcessTraceData, JObject> eventDecoderFunc,
+            ProcessTraceData sysEvent)
         {
             Activity activity;
             ISystemContext sysContext;
+            JObject log;
 
             // check if image is null
-            if (string.IsNullOrEmpty(image) || log == null)
+            if (string.IsNullOrEmpty(image))
             {
                 throw new ArgumentNullException(DebugMessages.SystemActivityNullException);
+            }
+
+            // check sysEvent or eventDecoderFunc is null
+            ArgumentNullException.ThrowIfNull(eventDecoderFunc);
+            ArgumentNullException.ThrowIfNull(sysEvent);
+
+            // decode the sysEvent to get log information
+            log = eventDecoderFunc(sysEvent);
+            if (log == null)
+            {
+                // in this case, the log does not pass the filter so we will return
+                return;
             }
 
             // check if process is already in the map
@@ -135,25 +151,37 @@ namespace Nanolite_agent.Beacon.SystemActivity
         }
 
         /// <summary>
-        /// Terminates the specified process and logs the associated activity.
+        /// Terminates the process associated with the specified process ID and logs relevant information.
         /// </summary>
-        /// <remarks>This method logs the activity associated with the specified process, increments the
-        /// log count, and ensures that all activities are stopped before removing the process from the internal
+        /// <remarks>If the decoded log returned by <paramref name="eventDecoderFunc"/> is <see
+        /// langword="null"/>,  the method exits without performing any further actions. Otherwise, the method logs the
+        /// decoded  information, updates the process activity context, and removes the process from the internal
         /// map.</remarks>
         /// <param name="processId">The unique identifier of the process to terminate.</param>
-        /// <param name="log">The log information to be recorded. Cannot be <see langword="null"/>.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="log"/> is <see langword="null"/>.</exception>
+        /// <param name="eventDecoderFunc">A function that decodes a <see cref="ProcessTraceData"/> into a <see cref="JObject"/>.  This function must not
+        /// return <see langword="null"/>.</param>
+        /// <param name="sysEvent">The system event associated with the process termination. Must not be <see langword="null"/>.</param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown if <paramref name="eventDecoderFunc"/>, or <paramref name="sysEvent"/> is <c>null</c>.
+        /// </exception>
         public void ProcessTerminate(
             long processId,
-            JObject log)
+            Func<ProcessTraceData, JObject> eventDecoderFunc,
+            ProcessTraceData sysEvent)
         {
             Activity activity;
             ISystemContext sysContext;
+            JObject log;
 
             // check if log is null
+            ArgumentNullException.ThrowIfNull(eventDecoderFunc);
+            ArgumentNullException.ThrowIfNull(sysEvent);
+
+            log = eventDecoderFunc(sysEvent);
             if (log == null)
             {
-                throw new ArgumentNullException(nameof(log), DebugMessages.SystemActivityNullException);
+                // in this case, the log does not pass the filter so we will return
+                return;
             }
 
             // check if process is in the map
@@ -162,7 +190,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
                 // get existing process activity context
                 (activity, sysContext) = existActContext.UpsertActivity(existActContext.Process.ArtifectContext, ActorType.NOT_ACTOR);
 
-                // print log information
+                // send log information to otel collector
                 Activity.Current = activity;
 
                 this.logger.LogInformation(log.ToString(Newtonsoft.Json.Formatting.None));
@@ -185,31 +213,42 @@ namespace Nanolite_agent.Beacon.SystemActivity
         }
 
         /// <summary>
-        /// Processes a system event log entry for a specified process and updates the activity context accordingly.
+        /// Processes a system event and updates the associated process activity context.
         /// </summary>
-        /// <remarks>This method updates the activity context for the specified process if it exists in
-        /// the process map. It logs the event information and increments the log count for the system
-        /// context.</remarks>
+        /// <remarks>This method processes a system event by decoding it into a log, determining the actor
+        /// type based on the  system event code, and updating the associated process activity context. If the log does
+        /// not pass the  filter (i.e., the decoder function returns <see langword="null"/>), the method exits without
+        /// further processing.  If the process activity context exists, the method updates it with the event details,
+        /// logs the information,  and increments the log count. The method also ensures that the activity is set for
+        /// telemetry purposes.</remarks>
         /// <param name="processId">The unique identifier of the process associated with the event.</param>
-        /// <param name="target">The target entity related to the event, such as a file or network address.</param>
-        /// <param name="sysmonCode">The system event code that indicates the type of event being processed.</param>
-        /// <param name="log">The JSON object containing the log details of the event. Cannot be <see langword="null"/>.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="log"/> is <see langword="null"/>.</exception>
-        /// <exception cref="NanoException.SystemActivityException">Thrown if the <paramref name="sysmonCode"/> is unsupported and cannot be mapped to a valid actor type.</exception>
+        /// <param name="target">The target resource or entity related to the event.</param>
+        /// <param name="sysmonCode">The system event code that categorizes the type of event.</param>
+        /// <param name="eventDecoderFunc">A function that decodes the <see cref="TraceEvent"/> into a <see cref="JObject"/> log.  The function must
+        /// not return <see langword="null"/>.</param>
+        /// <param name="sysEvent">The system event to be processed. Cannot be <see langword="null"/>.</param>
+        /// <exception cref="NanoException.SystemActivityException">Thrown if the <paramref name="sysmonCode"/> is unsupported or cannot be mapped to a valid actor type.</exception>
         public void ProcessAction(
             long processId,
             string target,
             SysEventCode sysmonCode,
-            JObject log)
+            Func<TraceEvent, JObject> eventDecoderFunc,
+            TraceEvent sysEvent)
         {
             Activity activity;
             ISystemContext sysContext;
             ActorType actorType;
+            JObject log;
 
             // check if log is null
+            ArgumentNullException.ThrowIfNull(eventDecoderFunc);
+            ArgumentNullException.ThrowIfNull(sysEvent);
+
+            log = eventDecoderFunc(sysEvent);
             if (log == null)
             {
-                throw new ArgumentNullException(nameof(log), DebugMessages.SystemActivityNullException);
+                // in this case, the log does not pass the filter so we will return
+                return;
             }
 
             actorType = SysEventCodeExtension.ToActorType(sysmonCode);
@@ -226,7 +265,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
                 // get existing process activity context
                 (activity, sysContext) = existActContext.UpsertActivity(actArtifect, actorType);
 
-                // print log information
+                // send log information to otel collector
                 Activity.Current = activity;
 
                 this.logger.LogInformation(log.ToString(Newtonsoft.Json.Formatting.None));

@@ -13,9 +13,23 @@ namespace Nanolite_agent.EventSession
     using Nanolite_agent.Tracepoint;
     using Newtonsoft.Json.Linq;
 
+    /// <summary>
+    /// Represents a session for monitoring system activity using Sysmon events.
+    /// </summary>
+    /// <remarks>This class provides functionality to manage a trace event session for capturing and
+    /// processing Sysmon events. It allows starting, stopping, and waiting for the session, as well as handling event
+    /// callbacks for various Sysmon event types. The session is automatically configured to stop when
+    /// disposed.</remarks>
     public sealed class SysmonEventSession : IEventSession
     {
+        /// <summary>
+        /// Gets the name of the session used for monitoring system events.
+        /// </summary>
         private readonly string sessionName = "Microsoft-Windows-Sysmon";
+
+        /// <summary>
+        /// Gets the unique identifier for the provider.
+        /// </summary>
         private readonly string providerGUID = "5770385f-c22a-43e0-bf4c-06f5698ffbd9";
 
         private readonly TraceEventSession traceEventSession;
@@ -23,6 +37,16 @@ namespace Nanolite_agent.EventSession
         private readonly SystemActivityBeacon beacon;
         private Task sessionTask;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SysmonEventSession"/> class,  which manages a session for
+        /// monitoring system activity using Sysmon events.
+        /// </summary>
+        /// <remarks>This constructor sets up the necessary components for monitoring Sysmon events,
+        /// including initializing a trace event session and configuring a Sysmon tracepoint.  The session is
+        /// automatically configured to stop when disposed.</remarks>
+        /// <param name="bcon">The <see cref="SystemActivityBeacon"/> instance used to coordinate system activity monitoring.  This
+        /// parameter cannot be <see langword="null"/>.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="bcon"/> is <see langword="null"/>.</exception>
         public SysmonEventSession(SystemActivityBeacon bcon)
         {
             // null check for Beacon
@@ -45,6 +69,11 @@ namespace Nanolite_agent.EventSession
             this.RegisterCallback();
         }
 
+        /// <summary>
+        /// Starts a new session and begins processing events asynchronously.
+        /// </summary>
+        /// <remarks>This method initiates the session and processes events in a background task.  The
+        /// session will continue running until explicitly stopped.</remarks>
         public void StartSession()
         {
             // Start the session and process events in a separate task
@@ -55,17 +84,30 @@ namespace Nanolite_agent.EventSession
             });
         }
 
+        /// <summary>
+        /// Stops the current trace event session and halts beacon monitoring.
+        /// </summary>
+        /// <remarks>This method terminates the active trace event session if one is running.  It is safe
+        /// to call this method multiple times; subsequent calls will have no effect  if the session has already been
+        /// stopped.</remarks>
         public void StopSession()
         {
             // Stop the session and the beacon monitoring
             this.traceEventSession?.Stop();
         }
 
+        /// <summary>
+        /// Waits for the current session task to complete.
+        /// </summary>
+        /// <remarks>This method blocks the calling thread until the session task, initiated by <see
+        /// cref="StartSession"/>, completes. Ensure that <see cref="StartSession"/> has been called before invoking
+        /// this method.</remarks>
+        /// <exception cref="InvalidOperationException">Thrown if the session task is not running. Call <see cref="StartSession"/> before calling this method.</exception>
         public void WaitSession()
         {
             if (this.sessionTask == null)
             {
-                throw new NullReferenceException("sessonTask is not running. Call StartSession before calling WaitSession");
+                throw new InvalidOperationException("sessonTask is not running. Call StartSession before calling WaitSession");
             }
 
             this.sessionTask.Wait();
@@ -78,14 +120,15 @@ namespace Nanolite_agent.EventSession
 
         private void RegisterCallback()
         {
-            //this.traceEventSession.Source.Dynamic.All += this.ProcessData;
             this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "ProcessCreate(rule:ProcessCreate)", this.ProcessData);
-            //this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Processaccessed(rule:ProcessAccess)", this.ProcessData);
+
+            this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Processaccessed(rule:ProcessAccess)", this.ProcessData);
+
             this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Processterminated(rule:ProcessTerminate)", this.ProcessData);
             this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "ProcessTampering(rule:ProcessTampering)", this.ProcessData);
             this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "CreateRemoteThreaddetected(rule:CreateRemoteThread)", this.ProcessData);
 
-            //this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "RawAccessReaddetected(rule:RawAccessRead)", this.ProcessData);
+            this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "RawAccessReaddetected(rule:RawAccessRead)", this.ProcessData);
 
             this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Filecreated(rule:FileCreate)", this.ProcessData);
             this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "FileExecutableDetected(rule:FileExecutableDetected)", this.ProcessData);
@@ -107,17 +150,6 @@ namespace Nanolite_agent.EventSession
 
         private void ProcessData(TraceEvent data)
         {
-            JToken metadataToken;
-            JObject metadata;
-
-            JObject log = this.sysmonTracepoint.GetSysmonLog(data);
-
-            // this means that the log does not pass the filter
-            if (log == null)
-            {
-                return;
-            }
-
             SysEventCode code = SysmonEventDecoder.GetEventCodeFromData(data);
 
             // send log to Beacon
@@ -125,12 +157,7 @@ namespace Nanolite_agent.EventSession
             {
                 try
                 {
-                    // get metadata from Sysmon log
-                    if (log.TryGetValue("Metadata", out metadataToken))
-                    {
-                        // convert jtoken to JObject
-                        this.beacon.ConsumeSystemActivity(code, metadataToken.ToObject<JObject>());
-                    }
+                    this.beacon.ConsumeSystemActivity(code, data, this.sysmonTracepoint.GetSysmonLog);
                 }
                 catch (Exception e)
                 {
@@ -139,7 +166,7 @@ namespace Nanolite_agent.EventSession
             }
             else
             {
-                throw new NullReferenceException("Beacon is not initialized. Cannot add log.");
+                throw new InvalidOperationException("Beacon is not initialized. Cannot add log.");
             }
         }
     }
