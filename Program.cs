@@ -99,7 +99,7 @@ namespace Nanolite_agent
             // Init Beacon
             try
             {
-                bcon = new Beacon.SystemActivityBeacon(config);
+                bcon = new Beacon.SystemActivityBeacon(in config);
             }
             catch (BeaconException be)
             {

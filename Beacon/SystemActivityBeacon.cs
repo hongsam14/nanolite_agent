@@ -84,10 +84,12 @@ namespace Nanolite_agent.Beacon
                 // health check for the beacon
                 try
                 {
-                    HttpClient httpClient = new HttpClient();
-
-                    var response = httpClient.GetAsync($"http://{config.CollectorIP}:13133/health").GetAwaiter().GetResult();
-                    Console.WriteLine($"Beacon health check response: {response.StatusCode}");
+                    using (HttpClient httpClient1 = new HttpClient())
+                    {
+                        // check if the collector is reachable
+                        var response = httpClient1.GetAsync($"http://{config.CollectorIP}:{config.CollectorPort}/health").GetAwaiter().GetResult();
+                        Console.WriteLine($"Collector health check response: {response.StatusCode}");
+                    }
                 }
                 catch (Exception ex)
                 {

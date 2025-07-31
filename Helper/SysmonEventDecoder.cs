@@ -265,7 +265,7 @@ namespace Nanolite_agent.Helper
             typeObj = regEventtData.PayloadByName("EventType");
             if (typeObj == null)
             {
-                throw new SystemActivityException("there is no EventType in the log");
+                throw new SystemActivityException("EventType field is missing from the registry event data.");
             }
 
             switch (typeObj.ToString())
