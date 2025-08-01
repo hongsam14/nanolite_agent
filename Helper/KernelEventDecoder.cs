@@ -51,6 +51,22 @@ namespace Nanolite_agent.Helper
             return EventFromCode(SysEventCode.ProcessTerminated, origin);
         }
 
+        /// <summary>
+        /// Decodes a kernel registry query event from the provided trace event.
+        /// </summary>
+        /// <param name="origin">The trace event containing the kernel registry query data. Cannot be <see langword="null"/>.</param>
+        /// <returns>A <see cref="JObject"/> representing the decoded kernel registry query event.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="origin"/> is <see langword="null"/>.</exception>
+        public static JObject DecodeKernelRegistryQueryEvent(TraceEvent origin)
+        {
+            if (origin == null)
+            {
+                throw new ArgumentNullException(nameof(origin));
+            }
+
+            return EventFromCode(SysEventCode.RegistryQuery, origin);
+        }
+
         private static JObject EventFromCode(SysEventCode eventCode, TraceEvent origin)
         {
             JObject metadataObj, eventObj;
@@ -73,6 +89,12 @@ namespace Nanolite_agent.Helper
                     break;
                 case SysEventCode.ProcessTerminated:
                     metadataObj = KernelEventDecoder.DecodeKernelMetadata<KernelProcessStopMetadata>(origin);
+                    break;
+                case SysEventCode.RegistryQuery:
+                    // Use specific method for registry query metadata.
+                    // That's because there is no pid in the PayloadNames of the TraceEvent
+                    // and we need to set it manually.
+                    metadataObj = KernelEventDecoder.DecodeKernelRegistryQueryMetadata(origin);
                     break;
                 default:
                     return null;
@@ -104,6 +126,44 @@ namespace Nanolite_agent.Helper
 
             // convert originObj to Metadata Object to filter unrelated value
             convertedObj = originObj.ToObject<T>();
+
+            // convert T to JObject
+            return JObject.FromObject(convertedObj);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="TraceEvent"/> instance into a JSON object containing kernel registry query metadata.
+        /// </summary>
+        /// <remarks>This method processes the payload of the provided <see cref="TraceEvent"/> to extract
+        /// relevant metadata, filters unrelated values, and includes the process ID from the original event.</remarks>
+        /// <param name="origin">The <see cref="TraceEvent"/> instance to be converted. Cannot be <see langword="null"/>.</param>
+        /// <returns>A <see cref="JObject"/> representing the kernel registry query metadata extracted from the provided
+        /// <paramref name="origin"/>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="origin"/> is <see langword="null"/>.</exception>
+        private static JObject DecodeKernelRegistryQueryMetadata(TraceEvent origin)
+        {
+            JObject originObj;
+            KernelRegistryQueryMetadata convertedObj;
+
+            if (origin == null)
+            {
+                throw new ArgumentNullException(nameof(origin));
+            }
+
+            // make new Json Object from TraceEvent
+            originObj = new JObject();
+
+            // copy all payloads to JObject
+            for (int i = 0; i < origin.PayloadNames.Length; i++)
+            {
+                originObj.Add(origin.PayloadNames[i], JToken.FromObject(origin.PayloadValue(i)));
+            }
+
+            // convert originObj to Metadata Object to filter unrelated value
+            convertedObj = originObj.ToObject<KernelRegistryQueryMetadata>();
+
+            // set pid manually
+            convertedObj.ProcessID = origin.ProcessID;
 
             // convert T to JObject
             return JObject.FromObject(convertedObj);

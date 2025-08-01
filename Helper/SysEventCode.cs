@@ -103,5 +103,13 @@ namespace Nanolite_agent.Helper
         /// Represents the event code for renaming a registry entry.
         /// </summary>
         RegistryRename,
+
+        /// <summary>
+        /// Represents a query to retrieve information from the Windows Registry.
+        /// </summary>
+        /// <remarks>This class provides functionality to query specific keys and values in the Windows
+        /// Registry. It is designed to simplify access to registry data for applications that require configuration or
+        /// system information stored in the registry.</remarks>
+        RegistryQuery,
     }
 }

@@ -4,7 +4,7 @@
 
 namespace Nanolite_agent.Helper
 {
-    using Nanolite_agent.Beacon.SystemActivity;
+    using Nanolite_agent.SystemActivity;
 
     /// <summary>
     /// Provides extension methods for the <see cref="SysEventCode"/> enumeration.
@@ -58,6 +58,8 @@ namespace Nanolite_agent.Helper
                     return "registry_set";
                 case SysEventCode.RegistryRename:
                     return "registry_rename";
+                case SysEventCode.RegistryQuery:
+                    return "registry_query";
                 default:
                     return "unknown_event";
             }
@@ -105,6 +107,8 @@ namespace Nanolite_agent.Helper
                     return ActorType.REG_SET;
                 case SysEventCode.RegistryRename:
                     return ActorType.REG_RENAME;
+                case SysEventCode.RegistryQuery:
+                    return ActorType.REG_QUERY;
                 default:
                     return ActorType.Undefined;
             }
@@ -142,6 +146,7 @@ namespace Nanolite_agent.Helper
                 case SysEventCode.RegistryDelete:
                 case SysEventCode.RegistrySet:
                 case SysEventCode.RegistryRename:
+                case SysEventCode.RegistryQuery:
                     return ArtifectType.Registry;
                 default:
                     return ArtifectType.Undefined;

@@ -22,8 +22,10 @@ namespace Nanolite_agent
     {
         private static Config.Config config;
         private static Beacon.SystemActivityBeacon bcon;
+        private static SystemActivity.SystemActivityRecorder systemRecorder;
         private static EventSession.SysmonEventSession sysmonSession;
-        private static EventSession.KernelEventSession kernelSession;
+        private static EventSession.KernelProcessEventSession kernelProcessSession;
+        private static EventSession.KernelRegistryEventSession kernelRegistrySession;
 
         private static readonly string logo = @"
     ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡀⠀⠀⣀⣀⡀⠀
@@ -112,9 +114,29 @@ namespace Nanolite_agent
                 return;
             }
 
+            // Initialize SystemActivityRecorder
+            try
+            {
+                systemRecorder = new SystemActivity.SystemActivityRecorder(in bcon);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"SystemActivityRecorder initialization failed: {e.Message}");
+                return;
+            }
+
             // start event sessions
-            sysmonSession = new EventSession.SysmonEventSession(bcon);
-            kernelSession = new EventSession.KernelEventSession(bcon);
+            try
+            {
+                sysmonSession = new EventSession.SysmonEventSession(systemRecorder);
+                kernelProcessSession = new EventSession.KernelProcessEventSession(systemRecorder);
+                kernelRegistrySession = new EventSession.KernelRegistryEventSession(systemRecorder);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Event session initialization failed: {e.Message}");
+                return;
+            }
 
             // Ctrl + C add event
             Console.CancelKeyPress += (object sender, ConsoleCancelEventArgs e) =>
@@ -134,13 +156,15 @@ namespace Nanolite_agent
 
             // Start Session
             sysmonSession.StartSession();
-            kernelSession.StartSession();
+            kernelProcessSession.StartSession();
+            kernelRegistrySession.StartSession();
 
             Console.WriteLine("Press Ctrl + C to stop monitoring and exit...");
 
             // Wait Session.
             sysmonSession.WaitSession();
-            kernelSession.WaitSession();
+            kernelProcessSession.WaitSession();
+            kernelRegistrySession.WaitSession();
 
             await cancelCompleted.Task;
 
@@ -149,8 +173,20 @@ namespace Nanolite_agent
 
         private static async Task CancelSequenceAsync()
         {
+            // flush all activities
+            try
+            {
+                systemRecorder.Flush();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error flushing actors: {e.Message}");
+            }
+
+            // Stop all sessions
+            kernelRegistrySession.StopSession();
+            kernelProcessSession.StopSession();
             sysmonSession.StopSession();
-            kernelSession.StopSession();
             bcon.StopMonitoring();
         }
     }

@@ -10,6 +10,8 @@ namespace Nanolite_agent.EventSession
     using Microsoft.Diagnostics.Tracing.Session;
     using Nanolite_agent.Beacon;
     using Nanolite_agent.Helper;
+    using Nanolite_agent.NanoException;
+    using Nanolite_agent.SystemActivity;
     using Nanolite_agent.Tracepoint;
     using Newtonsoft.Json.Linq;
 
@@ -34,23 +36,22 @@ namespace Nanolite_agent.EventSession
 
         private readonly TraceEventSession traceEventSession;
         private readonly Sysmon sysmonTracepoint;
-        private readonly SystemActivityBeacon beacon;
+        private readonly SystemActivityRecorder sysActRecorder;
         private Task sessionTask;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SysmonEventSession"/> class,  which manages a session for
-        /// monitoring system activity using Sysmon events.
+        /// capturing and processing system activity events using Sysmon.
         /// </summary>
-        /// <remarks>This constructor sets up the necessary components for monitoring Sysmon events,
-        /// including initializing a trace event session and configuring a Sysmon tracepoint.  The session is
-        /// automatically configured to stop when disposed.</remarks>
-        /// <param name="bcon">The <see cref="SystemActivityBeacon"/> instance used to coordinate system activity monitoring.  This
-        /// parameter cannot be <see langword="null"/>.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="bcon"/> is <see langword="null"/>.</exception>
-        public SysmonEventSession(SystemActivityBeacon bcon)
+        /// <remarks>This constructor sets up the necessary components for capturing Sysmon events,
+        /// including initializing a trace event session and subscribing to the appropriate event providers. The session
+        /// is configured to automatically stop when disposed, and it uses a buffer size of 1024 MB.</remarks>
+        /// <param name="sysrecorder">An instance of <see cref="SystemActivityRecorder"/> used to record and process system activity events.</param>
+        public SysmonEventSession(SystemActivityRecorder sysrecorder)
         {
-            // null check for Beacon
-            this.beacon = bcon ?? throw new ArgumentNullException(nameof(bcon), "Beacon cannot be null");
+            // null check of sysrecorder
+            ArgumentNullException.ThrowIfNull(sysrecorder);
+            this.sysActRecorder = sysrecorder;
 
             // initialize TraceEventSession
             this.traceEventSession = new TraceEventSession(this.sessionName)
@@ -148,25 +149,128 @@ namespace Nanolite_agent.EventSession
             this.traceEventSession.Source.Dynamic.AddCallbackForProviderEvent(this.sessionName, "Registryobjectrenamed(rule:RegistryEvent)", this.ProcessData);
         }
 
-        private void ProcessData(TraceEvent data)
+        /// <summary>
+        /// Processes a system activity event by extracting relevant data and recording the action.
+        /// </summary>
+        /// <remarks>This method determines the type of system activity based on the event code and
+        /// extracts the appropriate target information and process ID from the event data. It then records the action
+        /// using the system activity recorder. If the event code is unknown or the process ID is not found, the method
+        /// either returns without processing or throws an exception, respectively.</remarks>
+        /// <param name="eventData">The event data containing information about the system activity to process.</param>
+        /// <exception cref="SystemActivityException">Thrown if the <paramref name="eventData"/> does not contain a valid process ID.</exception>
+        private void ProcessData(TraceEvent eventData)
         {
-            SysEventCode code = SysmonEventDecoder.GetEventCodeFromData(data);
+            string target;
+            long processId;
+            SysEventCode code;
+            JObject syslog;
 
-            // send log to Beacon
-            if (this.beacon != null)
+            // first, check if the eventData is null
+            if (eventData == null)
             {
-                try
-                {
-                    this.beacon.ConsumeSystemActivity(code, data, this.sysmonTracepoint.GetSysmonLog);
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Error sending log: {e.Message}");
-                }
+                throw new ArgumentNullException(nameof(eventData), "Event data cannot be null.");
+            }
+
+            // Get the process ID from the event data
+            if (eventData.PayloadByName("ProcessId") is long pid)
+            {
+                processId = pid;
+            }
+            else if (eventData.PayloadByName("ProcessId") is int pidInt)
+            {
+                processId = pidInt;
+            }
+
+            // when processAccessed event, the ProcessId is not present, but SourceProcessId is present.
+            else if (eventData.PayloadByName("SourceProcessId") is long sourcePid)
+            {
+                processId = sourcePid;
+            }
+            else if (eventData.PayloadByName("SourceProcessId") is int sourcePidInt)
+            {
+                processId = sourcePidInt;
             }
             else
             {
-                throw new InvalidOperationException("Beacon is not initialized. Cannot add log.");
+                // Throw an exception if ProcessId is not found
+                throw new SystemActivityException($"ProcessId not found in event data in {nameof(SysmonEventSession)}, target: {eventData}");
+            }
+
+            // check if the eventData is from Tracked Process
+            if (!this.sysActRecorder.IsProcessTracked(processId))
+            {
+                // If the event is not from a tracked process, do nothing
+                return;
+            }
+
+            code = SysmonEventDecoder.GetEventCodeFromData(eventData);
+
+            switch (code)
+            {
+                case SysEventCode.ProcessCreation:
+                case SysEventCode.ProcessTampering:
+                    target = eventData.PayloadByName("Image")?.ToString() ?? string.Empty;
+                    break;
+                case SysEventCode.ProcessTerminated:
+                    return;
+                case SysEventCode.ProcessAccess:
+                case SysEventCode.CreateRemoteThread:
+                    target = eventData.PayloadByName("TargetImage")?.ToString() ?? string.Empty;
+                    break;
+                case SysEventCode.ImageLoad:
+                case SysEventCode.DriverLoad:
+                    target = eventData.PayloadByName("ImageLoaded")?.ToString() ?? string.Empty;
+                    break;
+                case SysEventCode.NetworkConnection:
+                    target = eventData.PayloadByName("DestinationIp")?.ToString() ?? string.Empty;
+                    break;
+                case SysEventCode.DnsQuery:
+                    target = eventData.PayloadByName("QueryName")?.ToString() ?? string.Empty;
+                    break;
+                case SysEventCode.RegistryAdd:
+                case SysEventCode.RegistrySet:
+                case SysEventCode.RegistryDelete:
+                    target = eventData.PayloadByName("TargetObject")?.ToString() ?? string.Empty;
+                    break;
+                case SysEventCode.RegistryRename:
+                    target = eventData.PayloadByName("NewName")?.ToString() ?? string.Empty;
+                    break;
+                case SysEventCode.FileCreate:
+                case SysEventCode.FileDelete:
+                case SysEventCode.FileModified:
+                case SysEventCode.CreateStreamHash:
+                    target = eventData.PayloadByName("TargetFilename")?.ToString() ?? string.Empty;
+                    break;
+                case SysEventCode.RawAccessReadDetected:
+                    target = eventData.PayloadByName("Device")?.ToString() ?? string.Empty;
+                    break;
+                case SysEventCode.Unknown:
+                default:
+                    // Unknown event code, do nothing
+                    return;
+            }
+
+            // decode the eventData to JObject
+            syslog = this.sysmonTracepoint.GetSysmonLog(eventData);
+            if (syslog == null)
+            {
+                // If syslog is null, it means the log is filtered. so do nothing
+                return;
+            }
+
+            try
+            {
+                this.sysActRecorder.RecordProcessAction(processId, target, code, syslog);
+            }
+            catch (SystemActivityException ex)
+            {
+                // Log the exception if the process ID is not found
+                Console.WriteLine($"Error processing Sysmon event data: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                // Log any other exceptions that occur during processing
+                throw new NanoException.BeaconException($"An error occurred while processing Sysmon event data: {ex.Message}", ex);
             }
         }
     }

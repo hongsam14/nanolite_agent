@@ -1,4 +1,4 @@
-﻿// <copyright file="KernelEventSession.cs" company="PlaceholderCompany">
+﻿// <copyright file="KernelProcessEventSession.cs" company="PlaceholderCompany">
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
@@ -9,45 +9,48 @@ namespace Nanolite_agent.EventSession
     using Microsoft.Diagnostics.Tracing.Parsers;
     using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
     using Microsoft.Diagnostics.Tracing.Session;
-    using Nanolite_agent.Beacon;
+    using Nanolite_agent.NanoException;
+    using Nanolite_agent.SystemActivity;
     using Nanolite_agent.Tracepoint;
+    using Newtonsoft.Json.Linq;
 
     /// <summary>
     /// Manages a kernel-mode ETW (Event Tracing for Windows) session to monitor process-related events.
     /// </summary>
     /// <remarks>This class provides functionality to start, stop, and wait for a kernel-mode ETW session. It
-    /// listens for  process creation and termination events and uses a <see cref="SystemActivityBeacon"/> to log these
+    /// listens for  process creation and termination events and uses a <see cref="SystemActivityRecorder"/> to log these
     /// events. The session is configured to automatically stop when disposed and uses a buffer size of 1024
     /// MB.</remarks>
-    public class KernelEventSession : IEventSession
+    public class KernelProcessEventSession : IEventSession
     {
         /// <summary>
         /// The name of the ETW (Event Tracing for Windows) session.
         /// </summary>
         /// <remarks>This field holds the default name for the ETW session used in tracing operations. It
         /// is a constant value and cannot be modified.</remarks>
-        private readonly string sessionName = "kernel_etw_session";
+        private readonly string sessionName = "kernel_etw_process_session";
 
         private readonly TraceEventSession traceEventSession;
-        private readonly KernelProcess kernelProcessTracepoint;
-        private readonly SystemActivityBeacon beacon;
+        private readonly ETWKernel etwKernelTracepoint;
+        private readonly SystemActivityRecorder sysActRecorder;
         private Task sessionTask;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="KernelEventSession"/> class,  which manages a kernel event
-        /// tracing session and processes system activity events.
+        /// Initializes a new instance of the <see cref="KernelProcessEventSession"/> class,  which manages a kernel
+        /// process event session for system activity recording.
         /// </summary>
-        /// <remarks>This class sets up a kernel event tracing session using ETW (Event Tracing for
-        /// Windows)  and subscribes to relevant kernel process tracepoints. The session is configured to stop
-        /// automatically when disposed, with a buffer size of 1024 MB.</remarks>
-        /// <param name="bcon">The <see cref="SystemActivityBeacon"/> instance used to signal system activity.  This parameter cannot be
+        /// <remarks>This constructor sets up an ETW (Event Tracing for Windows) session with kernel
+        /// process tracing enabled.  The session is configured to automatically stop when disposed and uses a buffer
+        /// size of 1024 MB.</remarks>
+        /// <param name="sysRecorder">The <see cref="SystemActivityRecorder"/> instance used to record system activity.  This parameter cannot be
         /// <see langword="null"/>.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="bcon"/> is <see langword="null"/>.</exception>
-        public KernelEventSession(SystemActivityBeacon bcon)
+        public KernelProcessEventSession(SystemActivityRecorder sysRecorder)
         {
             // null check for Beacon
-            this.beacon = bcon ?? throw new ArgumentNullException(nameof(bcon), "Beacon cannot be null");
+            ArgumentNullException.ThrowIfNull(sysRecorder);
+            this.sysActRecorder = sysRecorder;
 
+            // initialize etw session
             this.traceEventSession = new TraceEventSession(this.sessionName)
             {
                 StopOnDispose = true,
@@ -57,7 +60,7 @@ namespace Nanolite_agent.EventSession
             this.sessionTask = null;
 
             // initialize Kernel Process Tracepoint
-            this.kernelProcessTracepoint = new Tracepoint.KernelProcess();
+            this.etwKernelTracepoint = new Tracepoint.ETWKernel();
 
             // subscribe function to etw session
             this.SubscribeProvider();
@@ -117,41 +120,79 @@ namespace Nanolite_agent.EventSession
             this.traceEventSession.Source.Kernel.ProcessStop += this.ProcessTerminate;
         }
 
-        private void ProcessCreate(ProcessTraceData data)
+        private void ProcessCreate(ProcessTraceData eventData)
         {
-            if (this.beacon != null)
+            JObject syslog;
+
+            // null check for eventData
+            ArgumentNullException.ThrowIfNull(eventData);
+
+            syslog = this.etwKernelTracepoint.GetKernelProcessCreateLog(eventData);
+            if (syslog == null)
             {
-                try
-                {
-                    this.beacon.CreateSystemObject(data, this.kernelProcessTracepoint.GetKernelProcessCreateLog);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error processing kernel event: {ex.Message}");
-                }
+                // this case means syslog is filtered out by etwKernelTracepoint
+                return;
             }
-            else
+
+            try
             {
-                throw new InvalidOperationException("Beacon is not initialized. Cannot add log.");
+                this.sysActRecorder.StartRecordProcessObject(
+                    eventData.ProcessID,
+                    eventData.ParentID,
+                    eventData.ImageFileName,
+                    syslog);
+            }
+            catch (SystemActivityException ex)
+            {
+                // log the exception
+                Console.WriteLine($"Error in processing process creation: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                // log the exception
+                throw new NanoException.BeaconException(
+                    "Error in processing process creation",
+                    ex);
             }
         }
 
-        private void ProcessTerminate(ProcessTraceData data)
+        private void ProcessTerminate(ProcessTraceData eventData)
         {
-            if (this.beacon != null)
+            JObject syslog;
+
+            // null check for eventData
+            ArgumentNullException.ThrowIfNull(eventData);
+
+            // check the process exists
+            if (!this.sysActRecorder.IsProcessTracked(eventData.ProcessID))
             {
-                try
-                {
-                    this.beacon.TerminateSystemObject(data, this.kernelProcessTracepoint.GetKernelProcessStopLog);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error processing kernel event: {ex.Message}");
-                }
+                return;
             }
-            else
+
+            syslog = this.etwKernelTracepoint.GetKernelProcessCreateLog(eventData);
+            if (syslog == null)
             {
-                throw new InvalidOperationException("Beacon is not initialized. Cannot add log.");
+                return;
+            }
+
+            try
+            {
+                // stop record process object
+                this.sysActRecorder.StopRecordProcessObject(
+                    eventData.ProcessID,
+                    syslog);
+            }
+            catch (SystemActivityException ex)
+            {
+                // log the exception
+                Console.WriteLine($"Error in processing process termination: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                // log the exception
+                throw new NanoException.BeaconException(
+                    "Error in processing process termination",
+                    ex);
             }
         }
     }
