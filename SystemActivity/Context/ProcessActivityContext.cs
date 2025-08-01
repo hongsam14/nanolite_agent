@@ -2,10 +2,11 @@
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
-namespace Nanolite_agent.Beacon.SystemActivity
+namespace Nanolite_agent.SystemActivity.Context
 {
     using System;
     using System.Diagnostics;
+    using Nanolite_agent.Helper;
     using nanolite_agent.Properties;
 
     /// <summary>
@@ -17,9 +18,9 @@ namespace Nanolite_agent.Beacon.SystemActivity
     /// context.</remarks>
     public class ProcessActivityContext
     {
-        private readonly ActorActivitiesOfProcess rrActors;
+        private readonly ActorActivityRecorder rrActors;
 
-        private readonly ActorActivitiesOfProcess wsActors;
+        private readonly ActorActivityRecorder wsActors;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProcessActivityContext"/> class with the process activity
@@ -41,8 +42,8 @@ namespace Nanolite_agent.Beacon.SystemActivity
             this.Process = process;
             this.Activity = processActivity;
 
-            this.rrActors = new ActorActivitiesOfProcess(source, ActorActivityType.READ_RECV);
-            this.wsActors = new ActorActivitiesOfProcess(source, ActorActivityType.WRITE_SEND);
+            this.rrActors = new ActorActivityRecorder(source, ActorActivityType.READ_RECV);
+            this.wsActors = new ActorActivityRecorder(source, ActorActivityType.WRITE_SEND);
         }
 
         /// <summary>
@@ -80,7 +81,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
             }
 
             // check type is actor type
-            actorActivityType = ActorTypeExtension.GetActorActivityTypeFromActorType(type);
+            actorActivityType = type.GetActorActivityTypeFromActorType();
             if (actorActivityType == ActorActivityType.NOT_ACTOR)
             {
                 // This case means that the type is not actor type.

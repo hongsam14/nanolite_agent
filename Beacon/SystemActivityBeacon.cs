@@ -5,23 +5,15 @@
 namespace Nanolite_agent.Beacon
 {
     using System;
-    using System.Collections.Generic;
     using System.Diagnostics;
     using System.Net.Http;
-    using Microsoft.Diagnostics.Tracing;
-    using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
-    using Nanolite_agent.Beacon.SystemActivity;
-    using Nanolite_agent.Helper;
-    using Nanolite_agent.NanoException;
-    using Newtonsoft.Json.Linq;
     using OpenTelemetry;
     using OpenTelemetry.Exporter;
     using OpenTelemetry.Logs;
     using OpenTelemetry.Resources;
     using OpenTelemetry.Trace;
-    using static System.Net.Mime.MediaTypeNames;
 
     /// <summary>
     /// Provides functionality and observility to monitor and log system activities using OpenTelemetry and OCSF Schema.
@@ -38,7 +30,6 @@ namespace Nanolite_agent.Beacon
 
         // log exporter and processor
         private readonly ILoggerFactory loggerFactory;
-        private readonly ILogger<SystemActivityBeacon> logger;
 
         private readonly OtlpLogExporter logExporter;
 
@@ -47,27 +38,23 @@ namespace Nanolite_agent.Beacon
 
         private readonly ResourceBuilder resource;
 
-        private readonly ProcessActivitiesOfSystem processActivities;
-
-        // flag to check if beacon is running
-        private bool isRunning;
-
         /// <summary>
-        /// Initializes a new instance of the <see cref="SystemActivityBeacon"/> class, which sets up telemetry and
+        /// Initializes a new instance of the <see cref="SystemActivityBeacon"/> class, which sets up tracing and
         /// logging for system activity monitoring using OpenTelemetry.
         /// </summary>
         /// <remarks>This constructor performs the following operations: <list type="bullet">
-        /// <item><description>Performs a health check on the OpenTelemetry collector to ensure it is
-        /// reachable.</description></item> <item><description>Configures OpenTelemetry tracing and logging using the
-        /// provided configuration.</description></item> <item><description>Initializes the <see
-        /// cref="ProcessActivitiesOfSystem"/> component for monitoring system activities.</description></item> </list>
-        /// Ensure that the provided configuration contains valid values for the collector IP, port, and exporter
+        /// <item><description>Performs a health check to ensure the OpenTelemetry collector is
+        /// reachable.</description></item> <item><description>Initializes the OpenTelemetry tracing provider with the
+        /// specified configuration.</description></item> <item><description>Initializes the OpenTelemetry logging
+        /// provider with the specified configuration.</description></item> <item><description>Creates a logger and
+        /// activity source for system activity monitoring.</description></item> </list> Ensure that the <paramref
+        /// name="config"/> object contains valid settings for the collector's IP address, port, and exporter
         /// name.</remarks>
-        /// <param name="config">The configuration object containing settings required to initialize the beacon, such as the collector IP,
-        /// port, and exporter name. Cannot be <see langword="null"/>.</param>
+        /// <param name="config">The configuration object containing settings for the beacon, including the collector's IP address, port, and
+        /// exporter name. Cannot be <see langword="null"/>.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="config"/> is <see langword="null"/>.</exception>
-        /// <exception cref="NanoException.BeaconException">Thrown if the beacon initialization fails, such as during health checks, resource setup, or telemetry
-        /// configuration.</exception>
+        /// <exception cref="NanoException.BeaconException">Thrown if the beacon initialization fails, such as when the collector health check fails or there is an
+        /// error constructing the trace and log providers.</exception>
         public SystemActivityBeacon(in Nanolite_agent.Config.Config config)
         {
             if (config == null)
@@ -76,7 +63,7 @@ namespace Nanolite_agent.Beacon
             }
 
             string serviceName = this.beaconName;
-            this.isRunning = false;
+            this.IsRunning = false;
 
             // init Otel traceProvider
             try
@@ -87,7 +74,7 @@ namespace Nanolite_agent.Beacon
                     using (HttpClient httpClient1 = new HttpClient())
                     {
                         // check if the collector is reachable
-                        var response = httpClient1.GetAsync($"http://{config.CollectorIP}:{config.CollectorPort}/health").GetAwaiter().GetResult();
+                        var response = httpClient1.GetAsync($"http://{config.CollectorIP}:13133/health").GetAwaiter().GetResult();
                         Console.WriteLine($"Collector health check response: {response.StatusCode}");
                     }
                 }
@@ -132,26 +119,37 @@ namespace Nanolite_agent.Beacon
                         options.AddProcessor(logProcessor);
                     });
                 });
-                this.logger = this.loggerFactory.CreateLogger<Nanolite_agent.Beacon.SystemActivityBeacon>();
             }
             catch (Exception e)
             {
-                throw new NanoException.BeaconException("error while construct beacon.", e);
+                throw new NanoException.BeaconException("error while construct trace & log providers.", e);
             }
 
             try
             {
-                // init Otel span source.
-                ActivitySource spanSource = new ActivitySource(config.Exporter);
-
-                // initialize ProcessActivitiesOfSystem
-                this.processActivities = new ProcessActivitiesOfSystem(this.logger, spanSource);
+                this.Logger = this.loggerFactory.CreateLogger<Nanolite_agent.Beacon.SystemActivityBeacon>();
+                this.SystemActivitySource = new ActivitySource(config.Exporter);
             }
             catch (Exception e)
             {
                 throw new NanoException.BeaconException("error while construct beacon.", e);
             }
         }
+
+        /// <summary>
+        /// Gets the logger for the system activity beacon.
+        /// </summary>
+        public ILogger<SystemActivityBeacon> Logger { get; private set; }
+
+        /// <summary>
+        /// Gets the root activity source for system activities.
+        /// </summary>
+        public ActivitySource SystemActivitySource { get; private set; }
+
+        /// <summary>
+        /// Gets a value indicating whether the beacon is currently running.
+        /// </summary>
+        public bool IsRunning { get; private set; }
 
         /// <summary>
         /// Starts monitoring the beacon.
@@ -161,13 +159,13 @@ namespace Nanolite_agent.Beacon
         /// <exception cref="NanoException.BeaconException">Thrown if the beacon is already running.</exception>
         public void StartMonitoring()
         {
-            if (this.isRunning)
+            if (this.IsRunning)
             {
                 throw new NanoException.BeaconException("Beacon is already running.");
             }
 
             // set running flag
-            this.isRunning = true;
+            this.IsRunning = true;
         }
 
         /// <summary>
@@ -179,13 +177,10 @@ namespace Nanolite_agent.Beacon
         /// <exception cref="NanoException.BeaconException">Thrown if the monitoring process is not currently running.</exception>
         public void StopMonitoring()
         {
-            if (!this.isRunning)
+            if (!this.IsRunning)
             {
                 throw new NanoException.BeaconException("Beacon is not running.");
             }
-
-            // flush Activity Dictionaries
-            this.processActivities.Flush();
 
             // flush and shutdown Otel log exporter
             this.logExporter?.ForceFlush();
@@ -199,127 +194,6 @@ namespace Nanolite_agent.Beacon
             this.tracerProvider?.Dispose();
 
             this.tracerProvider?.Shutdown();
-        }
-
-        /// <summary>
-        /// Processes an event log to create a system object representing a process launch.
-        /// </summary>
-        /// <remarks>This method extracts process-related information from the provided event log and
-        /// invokes the  <see cref="ProcessActivities.ProcessLaunch"/> method to handle the process launch. If the
-        /// required  data is missing or invalid, the method exits without performing any action.</remarks>
-        /// <param name="eventData">A <see cref="ProcessTraceData"/> object containing event log data. The object must
-        /// contain the following keys:
-        /// <list type="bullet"> <item> <description><c>ProcessID</c>: The ID of the process being
-        /// launched.</description> </item> <item> <description><c>ParentID</c>: The ID of the parent
-        /// process.</description> </item> <item> <description><c>ImageFileName</c>: The name of the executable file for
-        /// the process.</description> </item> </list> If any of these keys are missing or invalid, the method will not
-        /// perform any action.</param>
-        /// <param name="eventDecoderFunc">A function that takes a <see cref="ProcessTraceData"/> object and returns a
-        /// JObject representing the decoded event data.
-        /// </param>
-        public void CreateSystemObject(ProcessTraceData eventData, Func<ProcessTraceData, JObject> eventDecoderFunc)
-        {
-            this.processActivities.ProcessLaunch(
-                eventData.ProcessID,
-                eventData.ParentID,
-                eventData.ImageFileName,
-                eventDecoderFunc,
-                eventData);
-        }
-
-        /// <summary>
-        /// Processes an event log to terminate a system object representing a process.
-        /// </summary>
-        /// <remarks>
-        /// This method extracts process-related information from the provided event log and
-        /// invokes the <see cref="ProcessActivitiesOfSystem.ProcessTerminate"/> method to handle the process termination.
-        /// </remarks>
-        /// <param name="eventData">A <see cref="ProcessTraceData"/> object containing event log data for the process to terminate.</param>
-        /// <param name="eventDecoderFunc">A function that takes a <see cref="ProcessTraceData"/> object and returns a <see cref="JObject"/> representing the decoded event data.</param>
-        public void TerminateSystemObject(ProcessTraceData eventData, Func<ProcessTraceData, JObject> eventDecoderFunc)
-        {
-            this.processActivities.ProcessTerminate(
-                eventData.ProcessID,
-                eventDecoderFunc,
-                eventData);
-        }
-
-        /// <summary>
-        /// Processes a system activity event by decoding its details and performing the appropriate action.
-        /// </summary>
-        /// <remarks>This method handles various system activity events, such as process creation, file
-        /// modifications, network connections, and registry changes. Depending on the <paramref name="eventCode"/>, it
-        /// extracts relevant information from the <paramref name="eventData"/> and processes the activity accordingly.
-        /// If the event code is unknown or not supported, the method performs no action.</remarks>
-        /// <param name="eventCode">The code representing the type of system event to process.</param>
-        /// <param name="eventData">The event data containing details about the system activity.</param>
-        /// <param name="eventDecoderFunc">A function that decodes the <see cref="TraceEvent"/> into a <see cref="JObject"/> for further processing.</param>
-        public void ConsumeSystemActivity(SysEventCode eventCode, TraceEvent eventData, Func<TraceEvent, JObject> eventDecoderFunc)
-        {
-            string target;
-            long processId;
-
-            switch (eventCode)
-            {
-                case SysEventCode.ProcessCreation:
-                case SysEventCode.ProcessTampering:
-                    target = eventData.PayloadByName("Image")?.ToString() ?? string.Empty;
-                    break;
-                case SysEventCode.ProcessTerminated:
-                    return;
-                case SysEventCode.ProcessAccess:
-                case SysEventCode.CreateRemoteThread:
-                    target = eventData.PayloadByName("TargetImage")?.ToString() ?? string.Empty;
-                    break;
-                case SysEventCode.ImageLoad:
-                case SysEventCode.DriverLoad:
-                    target = eventData.PayloadByName("ImageLoaded")?.ToString() ?? string.Empty;
-                    break;
-                case SysEventCode.NetworkConnection:
-                    target = eventData.PayloadByName("DestinationIp")?.ToString() ?? string.Empty;
-                    break;
-                case SysEventCode.DnsQuery:
-                    target = eventData.PayloadByName("QueryName")?.ToString() ?? string.Empty;
-                    break;
-                case SysEventCode.RegistryAdd:
-                case SysEventCode.RegistrySet:
-                case SysEventCode.RegistryDelete:
-                    target = eventData.PayloadByName("TargetObject")?.ToString() ?? string.Empty;
-                    break;
-                case SysEventCode.RegistryRename:
-                    target = eventData.PayloadByName("NewName")?.ToString() ?? string.Empty;
-                    break;
-                case SysEventCode.FileCreate:
-                case SysEventCode.FileDelete:
-                case SysEventCode.FileModified:
-                case SysEventCode.CreateStreamHash:
-                    target = eventData.PayloadByName("TargetFilename")?.ToString() ?? string.Empty;
-                    break;
-                case SysEventCode.RawAccessReadDetected:
-                    target = eventData.PayloadByName("Device")?.ToString() ?? string.Empty;
-                    break;
-                case SysEventCode.Unknown:
-                default:
-                    // Unknown event code, do nothing
-                    return;
-            }
-
-            // Get the process ID from the event data
-            if (eventData.PayloadByName("ProcessId") is long pid)
-            {
-                processId = pid;
-            }
-            else if (eventData.PayloadByName("ProcessId") is int pidInt)
-            {
-                processId = pidInt;
-            }
-            else
-            {
-                // If ProcessID is not available, we cannot process this event
-                return;
-            }
-
-            this.processActivities.ProcessAction(processId, target, eventCode, eventDecoderFunc, eventData);
         }
     }
 }

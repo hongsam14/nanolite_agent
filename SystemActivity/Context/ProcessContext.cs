@@ -1,5 +1,8 @@
-﻿
-namespace Nanolite_agent.Beacon.SystemActivity
+﻿// <copyright file="ProcessContext.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+namespace Nanolite_agent.SystemActivity.Context
 {
     using System;
     using nanolite_agent.Properties;

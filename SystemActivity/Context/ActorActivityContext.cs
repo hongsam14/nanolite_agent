@@ -2,7 +2,7 @@
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
-namespace Nanolite_agent.Beacon.SystemActivity
+namespace Nanolite_agent.SystemActivity.Context
 {
     using System;
     using System.Diagnostics;

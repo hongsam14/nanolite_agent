@@ -2,7 +2,7 @@
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
-namespace Nanolite_agent.Beacon.SystemActivity
+namespace Nanolite_agent.SystemActivity.Context
 {
     /// <summary>
     /// Represents a context within the system, providing access to specific artifacts and context-related information.

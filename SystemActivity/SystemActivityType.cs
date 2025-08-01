@@ -2,7 +2,7 @@
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
-namespace Nanolite_agent.Beacon.SystemActivity
+namespace Nanolite_agent.SystemActivity
 {
     /// <summary>
     /// ArtifectType enum represents Actor's artifect type.
@@ -149,6 +149,11 @@ namespace Nanolite_agent.Beacon.SystemActivity
         /// Registry rename actor. This actor represents sysmon-event-14.
         /// </summary>
         REG_RENAME,
+
+        /// <summary>
+        /// Registry query actor. This actor represents etw event 4.
+        /// </summary>
+        REG_QUERY,
     }
 
     /// <summary>

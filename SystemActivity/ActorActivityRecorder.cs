@@ -1,27 +1,35 @@
-﻿// <copyright file="ActorActivitiesOfProcess.cs" company="PlaceholderCompany">
+﻿// <copyright file="ActorActivityRecorder.cs" company="PlaceholderCompany">
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
-namespace Nanolite_agent.Beacon.SystemActivity
+namespace Nanolite_agent.SystemActivity
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using Nanolite_agent.Helper;
     using nanolite_agent.Properties;
+    using Nanolite_agent.SystemActivity.Context;
 
     /// <summary>
-    /// ActorActivitiesOfProcess class is a collection of actor activity contexts that are associated with a process.
+    /// Provides functionality to record and manage actor activities within a process, enabling tracing and monitoring
+    /// of actor-related operations.
     /// </summary>
-    public class ActorActivitiesOfProcess
+    /// <remarks>The <see cref="ActorActivityRecorder"/> class is designed to manage the lifecycle of actor
+    /// activities, including creating, updating, and flushing actor contexts.  It ensures that actor activities are
+    /// properly tracked and their data is sent to the collector when necessary. This class is particularly useful for
+    /// tracing  distributed systems or monitoring actor-based workflows.</remarks>
+    public class ActorActivityRecorder
     {
         private readonly ActorActivityType activityType;
 
         private readonly ActivitySource activitySource;
 
-        private Dictionary<string, ActorActivityContext> actorMap;
+        private ConcurrentDictionary<string, ActorActivityContext> actorMap;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ActorActivitiesOfProcess"/> class with the specified activity
+        /// Initializes a new instance of the <see cref="ActorActivityRecorder"/> class with the specified activity
         /// source and actor activity type.
         /// This object will hold the actor activity and context to trace process related activity.
         /// </summary>
@@ -29,7 +37,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
         /// <param name="activityType">The type of actor activity. Must not be <see cref="ActorActivityType.UNDEFINED"/>.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="source"/> is <see langword="null"/> or <paramref name="activityType"/> is <see
         /// cref="ActorActivityType.UNDEFINED"/>.</exception>
-        public ActorActivitiesOfProcess(in ActivitySource source, in ActorActivityType activityType)
+        public ActorActivityRecorder(in ActivitySource source, in ActorActivityType activityType)
         {
             // check activityType is defined
             if (source == null || activityType == ActorActivityType.UNDEFINED)
@@ -39,16 +47,16 @@ namespace Nanolite_agent.Beacon.SystemActivity
 
             this.activitySource = source;
             this.activityType = activityType;
-            this.actorMap = new Dictionary<string, ActorActivityContext>();
+            this.actorMap = new ConcurrentDictionary<string, ActorActivityContext>();
         }
 
         /// <summary>
-        /// Finalizes an instance of the <see cref="ActorActivitiesOfProcess"/> class.
+        /// Finalizes an instance of the <see cref="ActorActivityRecorder"/> class.
         /// </summary>
         /// <remarks>This destructor iterates over the collection of <see cref="ActorActivityContext"/>
         /// objects, ensuring that any ongoing activities are stopped and their data is sent to the collector. It also
         /// clears the internal map to release resources for garbage collection.</remarks>
-        ~ActorActivitiesOfProcess()
+        ~ActorActivityRecorder()
         {
             // Call FlushActors to ensure all activities are stopped and data is sent to the collector
             this.FlushActors();
@@ -112,7 +120,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
             }
 
             // check actor type.
-            if (ActorTypeExtension.GetActorActivityTypeFromActorType(type) != this.activityType)
+            if (type.GetActorActivityTypeFromActorType() != this.activityType)
             {
                 throw new ArgumentException(DebugMessages.SystemActivityInvalidType, nameof(type));
             }
@@ -148,7 +156,7 @@ namespace Nanolite_agent.Beacon.SystemActivity
                 actorActivityContext = new ActorActivityContext(newActivity, newActor);
 
                 // Add the new ActorActivityContext to the GetterSpan dictionary
-                this.actorMap[newActor.ContextID] = actorActivityContext;
+                this.actorMap.TryAdd(newActor.ContextID, actorActivityContext);
 
                 // Set tags for the activity
                 ActorTypeExtension.TagActorActivityAttribute(newActivity, this.activityType);
