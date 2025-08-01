@@ -23,7 +23,7 @@ namespace Nanolite_agent.SystemActivity.Context
         /// </summary>
         /// <param name="artifectContext">The artifect context to be used by the process. Cannot be <see langword="null"/>.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="artifectContext"/> is <see langword="null"/>.</exception>
-        public ProcessContext(Artifect artifectContext)
+        public ProcessContext(Artifact artifectContext)
         {
             if (artifectContext == null)
             {
@@ -40,7 +40,7 @@ namespace Nanolite_agent.SystemActivity.Context
         /// <summary>
         /// Gets the artifect context associated with this process.
         /// </summary>
-        public Artifect ArtifectContext { get; private set; }
+        public Artifact ArtifectContext { get; private set; }
 
         /// <summary>
         /// Gets the current log count for this process context.

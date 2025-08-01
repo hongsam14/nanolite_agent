@@ -115,12 +115,12 @@ namespace Nanolite_agent.Helper
         }
 
         /// <summary>
-        /// Converts a <see cref="SysEventCode"/> to its corresponding <see cref="ArtifectType"/>.
+        /// Converts a <see cref="SysEventCode"/> to its corresponding <see cref="ArtifactType"/>.
         /// </summary>
         /// <param name="code">The system event code to convert.</param>
-        /// <returns>The <see cref="ArtifectType"/> that corresponds to the specified <paramref name="code"/>. Returns <see
-        /// cref="ArtifectType.Undefined"/> if the event code does not match any known type.</returns>
-        public static ArtifectType ToArtifectType(this SysEventCode code)
+        /// <returns>The <see cref="ArtifactType"/> that corresponds to the specified <paramref name="code"/>. Returns <see
+        /// cref="ArtifactType.Undefined"/> if the event code does not match any known type.</returns>
+        public static ArtifactType ToArtifectType(this SysEventCode code)
         {
             switch (code)
             {
@@ -129,27 +129,27 @@ namespace Nanolite_agent.Helper
                 case SysEventCode.ProcessTerminated:
                 case SysEventCode.CreateRemoteThread:
                 case SysEventCode.ProcessTampering:
-                    return ArtifectType.Process;
+                    return ArtifactType.Process;
                 case SysEventCode.NetworkConnection:
                 case SysEventCode.DnsQuery:
-                    return ArtifectType.Network;
+                    return ArtifactType.Network;
                 case SysEventCode.DriverLoad:
                 case SysEventCode.ImageLoad:
-                    return ArtifectType.Module;
+                    return ArtifactType.Module;
                 case SysEventCode.FileCreate:
                 case SysEventCode.FileModified:
                 case SysEventCode.FileDelete:
                 case SysEventCode.CreateStreamHash:
                 case SysEventCode.RawAccessReadDetected:
-                    return ArtifectType.File;
+                    return ArtifactType.File;
                 case SysEventCode.RegistryAdd:
                 case SysEventCode.RegistryDelete:
                 case SysEventCode.RegistrySet:
                 case SysEventCode.RegistryRename:
                 case SysEventCode.RegistryQuery:
-                    return ArtifectType.Registry;
+                    return ArtifactType.Registry;
                 default:
-                    return ArtifectType.Undefined;
+                    return ArtifactType.Undefined;
             }
         }
     }

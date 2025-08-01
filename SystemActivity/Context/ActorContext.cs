@@ -26,7 +26,7 @@ namespace Nanolite_agent.SystemActivity.Context
         /// Thrown if <paramref name="artifectContext"/> is <see langword="null"/>
         /// or if <paramref name="type"/> is <see cref="ActorType.Undefined"/>.
         /// </exception>
-        public ActorContext(Artifect artifectContext, ActorType type)
+        public ActorContext(Artifact artifectContext, ActorType type)
         {
             if (artifectContext == null || type == ActorType.Undefined)
             {
@@ -52,7 +52,7 @@ namespace Nanolite_agent.SystemActivity.Context
         /// <summary>
         /// Gets the artifect context associated with this actor.
         /// </summary>
-        public Artifect ArtifectContext { get; private set; }
+        public Artifact ArtifectContext { get; private set; }
 
         /// <summary>
         /// Gets the current log count for this actor context.

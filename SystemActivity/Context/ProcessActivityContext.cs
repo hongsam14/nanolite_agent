@@ -70,7 +70,7 @@ namespace Nanolite_agent.SystemActivity.Context
         /// activity and context.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="obj"/> is <see langword="null"/>.</exception>
         /// <exception cref="NanoException.SystemActivityException">Thrown if the actor activity type derived from <paramref name="type"/> is unsupported.</exception>
-        public (Activity, ISystemContext) UpsertActivity(Artifect obj, ActorType type)
+        public (Activity, ISystemContext) UpsertActivity(Artifact obj, ActorType type)
         {
             ActorActivityType actorActivityType;
             ActorActivityContext actorActivityContext;

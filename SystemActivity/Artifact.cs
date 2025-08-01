@@ -1,4 +1,4 @@
-﻿// <copyright file="Artifect.cs" company="PlaceholderCompany">
+﻿// <copyright file="Artifact.cs" company="PlaceholderCompany">
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
@@ -8,24 +8,24 @@ namespace Nanolite_agent.SystemActivity
     using nanolite_agent.Properties;
 
     /// <summary>
-    /// Defines the type of artifect that an actor can interact with.
+    /// Defines the type of artifact that an actor can interact with.
     /// </summary>
-    public class Artifect
+    public class Artifact
     {
         private readonly string objectName;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Artifect"/> class with the specified type and name.
+        /// Initializes a new instance of the <see cref="Artifact"/> class with the specified type and name.
         /// </summary>
         /// <param name="objectType">The type of the artifact, indicating its category or classification.</param>
         /// <param name="objectName">The name of the artifact. This value cannot be <see langword="null"/>.</param>
         /// <exception cref="ArgumentNullException">
         /// Thrown if <paramref name="objectName"/> is <see langword="null"/>
-        /// or <paramef name="objectType"/> is <see cref="ArtifectType.Undefined"/>.
+        /// or <paramref name="objectType"/> is <see cref="ArtifactType.Undefined"/>.
         /// </exception>
-        public Artifect(ArtifectType objectType, string objectName)
+        public Artifact(ArtifactType objectType, string objectName)
         {
-            if (string.IsNullOrEmpty(objectName) || objectType == ArtifectType.Undefined)
+            if (string.IsNullOrEmpty(objectName) || objectType == ArtifactType.Undefined)
             {
                 throw new ArgumentNullException(nameof(objectName), DebugMessages.SystemActivityNullException);
             }
@@ -37,7 +37,7 @@ namespace Nanolite_agent.SystemActivity
         /// <summary>
         /// Gets Object type of the artifect.
         /// </summary>
-        public ArtifectType ObjectType { get; private set; }
+        public ArtifactType ObjectType { get; private set; }
 
         /// <summary>
         /// Gets provides a identifier for the artifect based on its type and name.
@@ -48,7 +48,7 @@ namespace Nanolite_agent.SystemActivity
             get
             {
                 // Return null or empty if objectName is null/empty or objectType is Undefined
-                if (string.IsNullOrEmpty(this.objectName) || this.ObjectType == ArtifectType.Undefined)
+                if (string.IsNullOrEmpty(this.objectName) || this.ObjectType == ArtifactType.Undefined)
                 {
                     return null;
                 }

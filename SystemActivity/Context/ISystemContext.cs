@@ -14,7 +14,7 @@ namespace Nanolite_agent.SystemActivity.Context
         /// <summary>
         /// Gets the current context of the artifact.
         /// </summary>
-        Artifect ArtifectContext { get; }
+        Artifact ArtifectContext { get; }
 
         /// <summary>
         /// Gets the unique identifier for the current context.

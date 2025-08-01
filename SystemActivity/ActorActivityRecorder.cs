@@ -109,7 +109,7 @@ namespace Nanolite_agent.SystemActivity
         /// <exception cref="ArgumentException">Thrown if <paramref name="type"/> is <see cref="ActorType.Undefined"/> or does not match the expected
         /// activity type.</exception>
         /// <exception cref="NanoException.SystemActivityException">Thrown if a new activity cannot be created for the actor.</exception>
-        public ActorActivityContext UpsertActor(Activity processActivity, Artifect artifect, ActorType type)
+        public ActorActivityContext UpsertActor(Activity processActivity, Artifact artifect, ActorType type)
         {
             // null checfor artifect and type
             ArgumentNullException.ThrowIfNull(processActivity);

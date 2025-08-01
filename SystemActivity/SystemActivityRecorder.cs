@@ -7,8 +7,6 @@ namespace Nanolite_agent.SystemActivity
     using System;
     using System.Collections.Concurrent;
     using System.Diagnostics;
-    using Microsoft.Diagnostics.Tracing;
-    using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
     using Microsoft.Extensions.Logging;
     using Nanolite_agent.Beacon;
     using Nanolite_agent.Helper;
@@ -90,7 +88,7 @@ namespace Nanolite_agent.SystemActivity
             // check if process is already in the map
             if (this.processMap.TryGetValue(processId, out ProcessActivityContext existActContext))
             {
-                Artifect existingProcessArtifect = existActContext.Process.ArtifectContext;
+                Artifact existingProcessArtifect = existActContext.Process.ArtifectContext;
 
                 // upsert existing process activity context
                 (activity, sysContext) = existActContext.UpsertActivity(existingProcessArtifect, ActorType.NOT_ACTOR);
@@ -98,7 +96,7 @@ namespace Nanolite_agent.SystemActivity
             else
             {
                 // create a new artifect for the process
-                Artifect procArtifect = new Artifect(ArtifectType.Process, image);
+                Artifact procArtifect = new Artifact(ArtifactType.Process, image);
                 ProcessContext procContext = new ProcessContext(procArtifect);
 
                 // check if parent process exists
@@ -258,7 +256,7 @@ namespace Nanolite_agent.SystemActivity
             if (this.processMap.TryGetValue(processId, out ProcessActivityContext existActContext))
             {
                 // create a new artifect for the sysmon code
-                Artifect actArtifect = new Artifect(sysmonCode.ToArtifectType(), target);
+                Artifact actArtifect = new Artifact(sysmonCode.ToArtifectType(), target);
 
                 // get existing process activity context
                 (activity, sysContext) = existActContext.UpsertActivity(actArtifect, actorType);

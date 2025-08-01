@@ -5,9 +5,9 @@
 namespace Nanolite_agent.SystemActivity
 {
     /// <summary>
-    /// ArtifectType enum represents Actor's artifect type.
+    /// ArtifactType enum represents Actor's artifect type.
     /// </summary>
-    public enum ArtifectType
+    public enum ArtifactType
     {
         /// <summary>
         /// Represents an undefined state or value.
@@ -15,27 +15,27 @@ namespace Nanolite_agent.SystemActivity
         Undefined = 0,
 
         /// <summary>
-        /// File system artifect.
+        /// File system artifact.
         /// </summary>
         File,
 
         /// <summary>
-        /// Registry artifect.
+        /// Registry artifact.
         /// </summary>
         Registry,
 
         /// <summary>
-        /// Network artifect.
+        /// Network artifact.
         /// </summary>
         Network,
 
         /// <summary>
-        ///  Process artifect. This is not Process Object. This is a type of artifect that represents a process injection.
+        ///  Process artifact. This is not Process Object. This is a type of artifact that represents a process injection.
         /// </summary>
         Process,
 
         /// <summary>
-        /// Module artifect
+        /// Module artifact
         /// </summary>
         Module,
     }
