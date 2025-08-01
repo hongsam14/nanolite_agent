@@ -7,14 +7,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "nanolite-agent", "nanolite-
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Any CPU = Debug|Any CPU
-		Release|Any CPU = Release|Any CPU
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{5C2C33DD-2A05-4B9E-8F98-5B37BC13CC65}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5C2C33DD-2A05-4B9E-8F98-5B37BC13CC65}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5C2C33DD-2A05-4B9E-8F98-5B37BC13CC65}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5C2C33DD-2A05-4B9E-8F98-5B37BC13CC65}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C2C33DD-2A05-4B9E-8F98-5B37BC13CC65}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{5C2C33DD-2A05-4B9E-8F98-5B37BC13CC65}.Debug|x64.Build.0 = Debug|Any CPU
+		{5C2C33DD-2A05-4B9E-8F98-5B37BC13CC65}.Release|x64.ActiveCfg = Release|x64
+		{5C2C33DD-2A05-4B9E-8F98-5B37BC13CC65}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

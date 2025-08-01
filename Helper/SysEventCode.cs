@@ -60,6 +60,11 @@ namespace Nanolite_agent.Helper
         ImageLoad,
 
         /// <summary>
+        /// Represents the event code for a network connection detected.
+        /// </summary>
+        RawAccessReadDetected,
+
+        /// <summary>
         /// Represents the event code for a file create.
         /// </summary>
         FileCreate,
@@ -98,60 +103,13 @@ namespace Nanolite_agent.Helper
         /// Represents the event code for renaming a registry entry.
         /// </summary>
         RegistryRename,
-    }
 
-    /// <summary>
-    /// Provides extension methods for the <see cref="SysEventCode"/> enumeration.
-    /// </summary>
-    /// <remarks>This class includes methods to convert <see cref="SysEventCode"/> values to more readable
-    /// string representations.</remarks>
-    public static class SysmonEventCodeExtensions
-    {
         /// <summary>
-        /// Converts the <see cref="SysEventCode"/> value to a user-friendly string representation.
+        /// Represents a query to retrieve information from the Windows Registry.
         /// </summary>
-        /// <param name="code">The <see cref="SysEventCode"/> to convert.</param>
-        /// <returns>A user-friendly string representation of the event code.</returns>
-        public static string ToFriendlyString(this SysEventCode code)
-        {
-            switch (code)
-            {
-                case SysEventCode.ProcessCreation:
-                    return "process_creation";
-                case SysEventCode.ProcessAccess:
-                    return "process_access";
-                case SysEventCode.ProcessTerminated:
-                    return "process_terminated";
-                case SysEventCode.CreateRemoteThread:
-                    return "create_remote_thread";
-                case SysEventCode.NetworkConnection:
-                    return "network_connection";
-                case SysEventCode.DnsQuery:
-                    return "dns_query";
-                case SysEventCode.DriverLoad:
-                    return "driver_load";
-                case SysEventCode.ImageLoad:
-                    return "image_load";
-                case SysEventCode.FileCreate:
-                    return "file_create";
-                case SysEventCode.FileModified:
-                    return "file_modified";
-                case SysEventCode.CreateStreamHash:
-                    return "create_stream_hash";
-                case SysEventCode.FileDelete:
-                    return "file_delete";
-                case SysEventCode.RegistryAdd:
-                    return "registry_add";
-                case SysEventCode.RegistryDelete:
-                    return "registry_delete";
-                case SysEventCode.RegistrySet:
-                    return "registry_set";
-                case SysEventCode.RegistryRename:
-                    return "registry_rename";
-                default:
-                    return "unknown_event";
-            }
-        }
+        /// <remarks>This class provides functionality to query specific keys and values in the Windows
+        /// Registry. It is designed to simplify access to registry data for applications that require configuration or
+        /// system information stored in the registry.</remarks>
+        RegistryQuery,
     }
-
 }

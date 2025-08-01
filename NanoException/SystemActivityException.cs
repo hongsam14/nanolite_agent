@@ -1,4 +1,4 @@
-﻿// <copyright file="BeaconException.cs" company="PlaceholderCompany">
+﻿// <copyright file="SystemActivityException.cs" company="PlaceholderCompany">
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
@@ -8,43 +8,43 @@ namespace Nanolite_agent.NanoException
     using System.Runtime.Serialization;
 
     /// <summary>
-    /// Represents errors that occur during beacon operations.
+    /// Exception thrown when a system activity error occurs.
     /// </summary>
     [Serializable]
-    public class BeaconException : Exception
+    public class SystemActivityException : BeaconException
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="BeaconException"/> class.
+        /// Initializes a new instance of the <see cref="SystemActivityException"/> class.
         /// </summary>
-        public BeaconException()
+        public SystemActivityException()
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BeaconException"/> class with a specified error message.
+        /// Initializes a new instance of the <see cref="SystemActivityException"/> class with a specified error message.
         /// </summary>
         /// <param name="message">The message that describes the error.</param>
-        public BeaconException(string message)
+        public SystemActivityException(string message)
             : base(message)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BeaconException"/> class with a specified error message and a reference to the inner exception that is the cause of this exception.
+        /// Initializes a new instance of the <see cref="SystemActivityException"/> class with a specified error message and a reference to the inner exception that is the cause of this exception.
         /// </summary>
-        /// <param name="message">The error message that explains the reason for the exception.</param>
+        /// <param name="message">The message that describes the error.</param>
         /// <param name="innerException">The exception that is the cause of the current exception.</param>
-        public BeaconException(string message, Exception innerException)
+        public SystemActivityException(string message, Exception innerException)
             : base(message, innerException)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BeaconException"/> class with serialized data.
+        /// Initializes a new instance of the <see cref="SystemActivityException"/> class with serialized data.
         /// </summary>
         /// <param name="info">The <see cref="SerializationInfo"/> that holds the serialized object data about the exception being thrown.</param>
         /// <param name="context">The <see cref="StreamingContext"/> that contains contextual information about the source or destination.</param>
-        protected BeaconException(SerializationInfo info, StreamingContext context)
+        protected SystemActivityException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
         }
