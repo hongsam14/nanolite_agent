@@ -80,7 +80,7 @@ namespace Nanolite_agent.Helper
 
             eventObj.Add("Source", "kernel");
 
-            eventObj.Add("TimeStamp", origin.TimeStamp);
+            eventObj.Add("Timestamp", origin.TimeStamp);
 
             switch (eventCode)
             {
