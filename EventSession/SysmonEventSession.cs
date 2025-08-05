@@ -215,8 +215,44 @@ namespace Nanolite_agent.EventSession
                     return;
                 case SysEventCode.ProcessAccess:
                 case SysEventCode.CreateRemoteThread:
+                    // this event is speacially handled.
+                    // get target process Context ID with ActivityRecorder.
+                    object targetPIdObj = eventData.PayloadByName("TargetProcessId");
+                    if (targetPIdObj == null)
+                    {
+                        // If TargetProcessId is not found, do nothing
+                        return;
+                    }
+
+                    long targetPId = Convert.ToInt64(targetPIdObj);
+
                     target = eventData.PayloadByName("TargetImage")?.ToString() ?? string.Empty;
-                    break;
+
+                    // decode the eventData to JObject
+                    syslog = this.sysmonTracepoint.GetSysmonLog(eventData);
+                    if (syslog == null)
+                    {
+                        // If syslog is null, it means the log is filtered. so do nothing
+                        return;
+                    }
+
+                    try
+                    {
+                        this.sysActRecorder.RecordProcessAccess(processId, targetPId, target, code, syslog);
+                    }
+                    catch (SystemActivityException ex)
+                    {
+                        // Log the exception if the process ID is not found
+                        Console.WriteLine($"Error processing Sysmon event data: {ex.Message}");
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log any other exceptions that occur during processing
+                        throw new NanoException.BeaconException($"An error occurred while processing Sysmon event data: {ex.Message}", ex);
+                    }
+
+                    return;
+
                 case SysEventCode.ImageLoad:
                 case SysEventCode.DriverLoad:
                     target = eventData.PayloadByName("ImageLoaded")?.ToString() ?? string.Empty;
