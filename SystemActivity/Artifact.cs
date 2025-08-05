@@ -12,8 +12,6 @@ namespace Nanolite_agent.SystemActivity
     /// </summary>
     public class Artifact
     {
-        private readonly string objectName;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="Artifact"/> class with the specified type and name.
         /// </summary>
@@ -31,13 +29,18 @@ namespace Nanolite_agent.SystemActivity
             }
 
             this.ObjectType = objectType;
-            this.objectName = objectName;
+            this.ObjectName = objectName;
         }
 
         /// <summary>
         /// Gets object type of the artifact.
         /// </summary>
         public ArtifactType ObjectType { get; private set; }
+
+        /// <summary>
+        /// Gets the name of the artifact.
+        /// </summary>
+        public string ObjectName { get; private set; }
 
         /// <summary>
         /// Gets an identifier for the artifact based on its type and name.
@@ -48,13 +51,13 @@ namespace Nanolite_agent.SystemActivity
             get
             {
                 // Return null or empty if objectName is null/empty or objectType is Undefined
-                if (string.IsNullOrEmpty(this.objectName) || this.ObjectType == ArtifactType.Undefined)
+                if (string.IsNullOrEmpty(this.ObjectName) || this.ObjectType == ArtifactType.Undefined)
                 {
                     return null;
                 }
 
                 // Generate a unique ID for the artifect based on its type and name
-                return $"{this.objectName}@{this.ObjectType}";
+                return $"{this.ObjectName}@{this.ObjectType}";
             }
         }
     }
