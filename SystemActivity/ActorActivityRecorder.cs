@@ -145,24 +145,17 @@ namespace Nanolite_agent.SystemActivity
             }
             else
             {
-                // Create a new ActorActivityContext for Getter
-                Activity newActivity = this.activitySource.CreateActivity(newActor.ContextID, ActivityKind.Internal, processActivity.Context);
-                if (newActivity == null)
-                {
-                    throw new NanoException.SystemActivityException(DebugMessages.SystemActivityUpsertException);
-                }
-
                 // create new actor activity context
-                actorActivityContext = new ActorActivityContext(newActivity, newActor);
+                actorActivityContext = new ActorActivityContext(this.activitySource, processActivity, newActor, this.activityType);
 
                 // Add the new ActorActivityContext to the GetterSpan dictionary
                 this.actorMap.TryAdd(newActor.ContextID, actorActivityContext);
 
                 // Set tags for the activity
-                ActorTypeExtension.TagActorActivityAttribute(newActivity, this.activityType);
+                ActorTypeExtension.TagActorActivityAttribute(actorActivityContext.Activity, this.activityType);
 
                 // Start the activity
-                newActivity.Start();
+                actorActivityContext.Activity.Start();
             }
 
             return actorActivityContext;

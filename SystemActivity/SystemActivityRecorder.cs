@@ -95,49 +95,22 @@ namespace Nanolite_agent.SystemActivity
             }
             else
             {
-                // create a new Artifact for the process
-                Artifact procArtifact = new Artifact(ArtifactType.Process, image);
-                ProcessContext procContext = new ProcessContext(procArtifact);
+                ProcessActivityContext parentProcessContext = null;
 
                 // check if parent process exists
-                if (this.processMap.TryGetValue(parentProcessId, out ProcessActivityContext parentProcessContext))
-                {
-                    Activity.Current = parentProcessContext.Activity;
-
-                    // if the parent process exists, we will create a new child activity with parent context.
-                    activity = this.source.CreateActivity(
-                        procContext.ContextID,
-                        ActivityKind.Internal,
-                        parentProcessContext.Activity.Context);
-                }
-                else
-                {
-                    // if the parent process does not exist, we will set the current activity to null.
-                    Activity.Current = null;
-
-                    // create a new activity for the process without parent context
-                    activity = this.source.CreateActivity(
-                        procContext.ContextID,
-                        ActivityKind.Internal,
-                        null);
-                }
+                this.processMap.TryGetValue(parentProcessId, out parentProcessContext);
 
                 // create a new process activity context
-                ProcessActivityContext actContext = new ProcessActivityContext(this.source, activity, procContext);
+                ProcessActivityContext actContext = new ProcessActivityContext(image, this.source, parentProcessContext);
 
                 // upsert process activity context
-                (Activity, ISystemContext) result = actContext.UpsertActivity(procArtifact, ActorType.NOT_ACTOR);
-
-                // set tag of activity
-                activity.SetTag("act.type", "launch");
-
-                // start activity
-                activity.Start();
+                (Activity, ISystemContext) result = actContext.UpsertActivity(actContext.Process.ArtifactContext, ActorType.NOT_ACTOR);
 
                 // append to processMap
                 this.processMap.TryAdd(processId, actContext);
 
                 sysContext = result.Item2;
+                activity = result.Item1;
             }
 
             // print log information
@@ -190,9 +163,6 @@ namespace Nanolite_agent.SystemActivity
                 // increment log count
                 sysContext.IncrementLogCount();
 
-                // set tag of log count
-                activity.SetTag("log.count", sysContext.LogCount);
-
                 // flush actors to ensure all activities are stopped
                 existActContext.Flush();
 
@@ -201,6 +171,92 @@ namespace Nanolite_agent.SystemActivity
 
                 // remove from processMap
                 this.processMap.TryRemove(processId, out _);
+            }
+        }
+
+        /// <summary>
+        /// Records a process access event, associating it with the specified process and target.
+        /// </summary>
+        /// <remarks>This method logs the process access event and updates the activity context for the
+        /// specified process. If the target process is not found in the process map, the <paramref name="target"/>
+        /// parameter is used as the target name. The method also increments the log count for the associated system
+        /// context and sends the log information to the OpenTelemetry collector.</remarks>
+        /// <param name="processId">The ID of the process initiating the access. Must be greater than zero.</param>
+        /// <param name="targetProcessId">The ID of the target process being accessed. If not found in the process map, the <paramref name="target"/>
+        /// parameter will be used as the target name.</param>
+        /// <param name="target">The name of the target being accessed. Cannot be null or empty.</param>
+        /// <param name="sysmonCode">The Sysmon event code representing the type of activity. Must not be <see cref="SysEventCode.Unknown"/> and
+        /// must correspond to a tampering-related activity.</param>
+        /// <param name="syslog">The JSON object containing the system log details for the event. Cannot be null.</param>
+        /// <exception cref="NanoException.SystemActivityException">Thrown if <paramref name="sysmonCode"/> is <see cref="SysEventCode.Unknown"/> or if the event code does not
+        /// correspond to a tampering-related activity.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="processId"/> is less than or equal to zero.</exception>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="target"/> is null or empty, or if <paramref name="syslog"/> is null.</exception>
+        public void RecordProcessAccess(
+            long processId,
+            long targetProcessId,
+            string target,
+            SysEventCode sysmonCode,
+            JObject syslog)
+        {
+            Activity activity;
+            ISystemContext sysContext;
+            ActorType actorType;
+
+            // check argument is valid
+            if (sysmonCode == SysEventCode.Unknown)
+            {
+                throw new NanoException.SystemActivityException("Sysmon code cannot be undefined.");
+            }
+
+            if (processId < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(processId), "Process ID must be greater than zero.");
+            }
+
+            if (string.IsNullOrEmpty(target))
+            {
+                throw new ArgumentNullException(nameof(target), DebugMessages.SystemActivityNullException);
+            }
+
+            // check sysLog is null
+            ArgumentNullException.ThrowIfNull(syslog);
+
+            actorType = sysmonCode.ToActorType();
+
+            // check if sysmonCode is not tampering
+            if (actorType != ActorType.REMOTE_THREAD)
+            {
+                throw new NanoException.SystemActivityException($"Unsupported sysmon code: {sysmonCode}");
+            }
+
+            // check if sysEvent is from the process which we are tracking with processMap
+            if (this.processMap.TryGetValue(processId, out ProcessActivityContext existActContext))
+            {
+                Artifact actArtifact;
+                // create a new Artifact for the sysmon code
+                // check targetProcessId is existing in processMap
+                if (this.processMap.TryGetValue(targetProcessId, out ProcessActivityContext targetProcessContext))
+                {
+                    actArtifact = new Artifact(sysmonCode.ToArtifactType(), targetProcessContext.Process.ArtifactContext.ObjectName);
+                }
+                else
+                {
+                    // create a new Artifact for the sysmon code
+                    // if targetProcessId is not in processMap, use target as the name
+                    actArtifact = new Artifact(sysmonCode.ToArtifactType(), target);
+                }
+
+                // get existing process activity context
+                (activity, sysContext) = existActContext.UpsertActivity(actArtifact, actorType);
+
+                // send log information to otel collector
+                Activity.Current = activity;
+
+                this.logger.LogInformation(syslog.ToString(Newtonsoft.Json.Formatting.None));
+
+                // increment log count
+                sysContext.IncrementLogCount();
             }
         }
 
