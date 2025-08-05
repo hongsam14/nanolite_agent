@@ -23,24 +23,62 @@ namespace Nanolite_agent.SystemActivity.Context
         private readonly ActorActivityRecorder wsActors;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ProcessActivityContext"/> class with the process activity
-        /// sourceActivity, and process context.
+        /// Initializes a new instance of the <see cref="ProcessActivityContext"/> class, representing the context for a
+        /// process activity, including its associated telemetry and metadata.
         /// </summary>
-        /// <param name="source">The <see cref="ActivitySource"/> used to create activities related to the process. Cannot be <see
-        /// langword="null"/>.</param>
-        /// <param name="processActivity">The <see cref="Activity"/> representing the current process activity. Cannot be <see langword="null"/>.</param>
-        /// <param name="process">The <see cref="ProcessContext"/> associated with the process. Cannot be <see langword="null"/>.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="source"/>, <paramref name="processActivity"/>, or <paramref name="process"/> is
-        /// <see langword="null"/>.</exception>
-        public ProcessActivityContext(in ActivitySource source, in Activity processActivity, in ProcessContext process)
+        /// <remarks>This constructor initializes a new activity for the process, setting its metadata and
+        /// tags based on the provided parameters. If a parent process context is provided, the new activity will
+        /// inherit its context. Additionally, this constructor initializes actor activity recorders for read/receive
+        /// and write/send operations.</remarks>
+        /// <param name="image">The name or identifier of the process image (e.g., the executable name) to associate with the activity.</param>
+        /// <param name="source">The <see cref="ActivitySource"/> used to create and manage the activity for this process context. Cannot be
+        /// <see langword="null"/>.</param>
+        /// <param name="parentProcessContext">The parent <see cref="ProcessActivityContext"/> to establish a hierarchical relationship for the activity.
+        /// If <see langword="null"/>, this instance will be treated as the root process context.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="source"/> is <see langword="null"/>.</exception>
+        public ProcessActivityContext(string image, in ActivitySource source, in ProcessActivityContext parentProcessContext)
         {
-            if (source == null || processActivity == null || process == null)
+            if (source == null)
             {
                 throw new ArgumentNullException(nameof(source), DebugMessages.SystemActivityNullException);
             }
 
-            this.Process = process;
-            this.Activity = processActivity;
+            if (parentProcessContext == null)
+            {
+                // This case means that this processActivityContext is the root process context.
+                // Create a new Activity for the process
+                Activity.Current = null;
+                this.Activity = source.CreateActivity(
+                    "uninitializedProcess",
+                    ActivityKind.Internal,
+                    null);
+            }
+            else
+            {
+                Activity.Current = parentProcessContext.Activity;
+                this.Activity = source.CreateActivity(
+                    "uninitializedProcess",
+                    ActivityKind.Internal,
+                    parentProcessContext.Activity.Context);
+            }
+
+            // start activity to generate a span
+            // Important: this will generate a span for the process activity
+            // This sequence is important because process object activity's name is set with the span ID
+            // and if we don't start the activity, the span ID will not be generated.
+            // and the process context will not be set correctly.
+            this.Activity.Start();
+
+            // create a new Artifact for the process
+            Artifact procArtifact = new Artifact(ArtifactType.Process, this.Activity.SpanId.ToString());
+            this.Process = new ProcessContext(procArtifact);
+
+            // set real name of activity
+            this.Activity.DisplayName = this.Process.ContextID;
+
+            // set the otel tags for the activity
+            this.Activity.SetTag("process.name", image);
+            this.Activity.SetTag("act.type", "launch");
 
             this.rrActors = new ActorActivityRecorder(source, ActorActivityType.READ_RECV);
             this.wsActors = new ActorActivityRecorder(source, ActorActivityType.WRITE_SEND);
@@ -119,6 +157,14 @@ namespace Nanolite_agent.SystemActivity.Context
             // Flush all actors in the read/receive and write/send contexts
             this.rrActors.FlushActors();
             this.wsActors.FlushActors();
+
+            // stop the process activity
+            if (this.Activity != null)
+            {
+                // set tag of log count
+                this.Activity.SetTag("log.count", this.Process.LogCount);
+                this.Activity.Stop();
+            }
 
             // Clear the activity and process context to release resources
             this.Activity = null;
