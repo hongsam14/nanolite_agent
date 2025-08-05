@@ -1,4 +1,4 @@
-﻿// <copyright file="KernelProcess.cs" company="PlaceholderCompany">
+﻿// <copyright file="ETWKernel.cs" company="PlaceholderCompany">
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 

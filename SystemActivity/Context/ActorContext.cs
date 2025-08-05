@@ -34,7 +34,7 @@ namespace Nanolite_agent.SystemActivity.Context
             }
 
             // set artifect object
-            this.ArtifectContext = artifectContext;
+            this.ArtifactContext = artifectContext;
 
             // set actor type
             this.Type = type;
@@ -52,7 +52,7 @@ namespace Nanolite_agent.SystemActivity.Context
         /// <summary>
         /// Gets the artifect context associated with this actor.
         /// </summary>
-        public Artifact ArtifectContext { get; private set; }
+        public Artifact ArtifactContext { get; private set; }
 
         /// <summary>
         /// Gets the current log count for this actor context.
@@ -68,13 +68,13 @@ namespace Nanolite_agent.SystemActivity.Context
         {
             get
             {
-                if (this.ArtifectContext == null || this.Type == ActorType.Undefined)
+                if (this.ArtifactContext == null || this.Type == ActorType.Undefined)
                 {
                     return null;
                 }
 
                 // Generate a unique ID for the actor based on its type and artifect object ID
-                return $"{this.ArtifectContext.ArtifectID}@{this.Type}";
+                return $"{this.ArtifactContext.ArtifectID}@{this.Type}";
             }
         }
 

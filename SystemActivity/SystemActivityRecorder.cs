@@ -88,16 +88,16 @@ namespace Nanolite_agent.SystemActivity
             // check if process is already in the map
             if (this.processMap.TryGetValue(processId, out ProcessActivityContext existActContext))
             {
-                Artifact existingProcessArtifect = existActContext.Process.ArtifectContext;
+                Artifact existingProcessArtifact = existActContext.Process.ArtifactContext;
 
                 // upsert existing process activity context
-                (activity, sysContext) = existActContext.UpsertActivity(existingProcessArtifect, ActorType.NOT_ACTOR);
+                (activity, sysContext) = existActContext.UpsertActivity(existingProcessArtifact, ActorType.NOT_ACTOR);
             }
             else
             {
-                // create a new artifect for the process
-                Artifact procArtifect = new Artifact(ArtifactType.Process, image);
-                ProcessContext procContext = new ProcessContext(procArtifect);
+                // create a new Artifact for the process
+                Artifact procArtifact = new Artifact(ArtifactType.Process, image);
+                ProcessContext procContext = new ProcessContext(procArtifact);
 
                 // check if parent process exists
                 if (this.processMap.TryGetValue(parentProcessId, out ProcessActivityContext parentProcessContext))
@@ -126,7 +126,7 @@ namespace Nanolite_agent.SystemActivity
                 ProcessActivityContext actContext = new ProcessActivityContext(this.source, activity, procContext);
 
                 // upsert process activity context
-                (Activity, ISystemContext) result = actContext.UpsertActivity(procArtifect, ActorType.NOT_ACTOR);
+                (Activity, ISystemContext) result = actContext.UpsertActivity(procArtifact, ActorType.NOT_ACTOR);
 
                 // set tag of activity
                 activity.SetTag("act.type", "launch");
@@ -180,7 +180,7 @@ namespace Nanolite_agent.SystemActivity
             if (this.processMap.TryGetValue(processId, out ProcessActivityContext existActContext))
             {
                 // get existing process activity context
-                (activity, sysContext) = existActContext.UpsertActivity(existActContext.Process.ArtifectContext, ActorType.NOT_ACTOR);
+                (activity, sysContext) = existActContext.UpsertActivity(existActContext.Process.ArtifactContext, ActorType.NOT_ACTOR);
 
                 // send log information to otel collector
                 Activity.Current = activity;
@@ -255,11 +255,11 @@ namespace Nanolite_agent.SystemActivity
             // check if sysEvent is from the process which we are tracking with processMap
             if (this.processMap.TryGetValue(processId, out ProcessActivityContext existActContext))
             {
-                // create a new artifect for the sysmon code
-                Artifact actArtifect = new Artifact(sysmonCode.ToArtifectType(), target);
+                // create a new Artifact for the sysmon code
+                Artifact actArtifact = new Artifact(sysmonCode.ToArtifactType(), target);
 
                 // get existing process activity context
-                (activity, sysContext) = existActContext.UpsertActivity(actArtifect, actorType);
+                (activity, sysContext) = existActContext.UpsertActivity(actArtifact, actorType);
 
                 // send log information to otel collector
                 Activity.Current = activity;
