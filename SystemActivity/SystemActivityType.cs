@@ -5,7 +5,7 @@
 namespace Nanolite_agent.SystemActivity
 {
     /// <summary>
-    /// ArtifactType enum represents Actor's artifect type.
+    /// ArtifactType enum represents Actor's artifact type.
     /// </summary>
     public enum ArtifactType
     {

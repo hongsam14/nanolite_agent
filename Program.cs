@@ -151,22 +151,36 @@ namespace Nanolite_agent
                 });
             };
 
-            // Start Beacon
-            bcon.StartMonitoring();
+            try
+            {
+                // Start Beacon
+                bcon.StartMonitoring();
 
-            // Start Session
-            sysmonSession.StartSession();
-            kernelProcessSession.StartSession();
-            kernelRegistrySession.StartSession();
+                // Start Session
+                sysmonSession.StartSession();
+                kernelProcessSession.StartSession();
+                kernelRegistrySession.StartSession();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Failed to start event sessions {e.Message}");
+            }
 
             Console.WriteLine("Press Ctrl + C to stop monitoring and exit...");
 
-            // Wait Session.
-            sysmonSession.WaitSession();
-            kernelProcessSession.WaitSession();
-            kernelRegistrySession.WaitSession();
+            try
+            {
+                // Wait Session.
+                sysmonSession.WaitSession();
+                kernelProcessSession.WaitSession();
+                kernelRegistrySession.WaitSession();
 
-            await cancelCompleted.Task;
+                await cancelCompleted.Task;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception raised while wait session: {ex.Message}");
+            }
 
             Console.WriteLine(value: DebugMessages.ExitMessage);
         }

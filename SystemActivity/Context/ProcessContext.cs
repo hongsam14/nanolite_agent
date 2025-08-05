@@ -31,16 +31,16 @@ namespace Nanolite_agent.SystemActivity.Context
             }
 
             // set artifect object
-            this.ArtifectContext = artifectContext;
+            this.ArtifactContext = artifectContext;
 
             // Initialize logCount to 0
             this.LogCount = 0;
         }
 
         /// <summary>
-        /// Gets the artifect context associated with this process.
+        /// Gets the artifact context associated with this process.
         /// </summary>
-        public Artifact ArtifectContext { get; private set; }
+        public Artifact ArtifactContext { get; private set; }
 
         /// <summary>
         /// Gets the current log count for this process context.
@@ -57,7 +57,7 @@ namespace Nanolite_agent.SystemActivity.Context
         {
             get
             {
-                if (this.ArtifectContext == null)
+                if (this.ArtifactContext == null)
                 {
                     return null;
                 }
@@ -66,7 +66,7 @@ namespace Nanolite_agent.SystemActivity.Context
                 // ProcessContext uses "LAUNCH" as the type.
                 // Because There are only Process type and Actor type in this context system.
                 // And ProcessContext is used to represent the process that is launched.
-                return $"{this.ArtifectContext.ArtifectID}@LAUNCH";
+                return $"{this.ArtifactContext.ArtifectID}@LAUNCH";
             }
         }
 

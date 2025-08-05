@@ -120,7 +120,7 @@ namespace Nanolite_agent.Helper
         /// <param name="code">The system event code to convert.</param>
         /// <returns>The <see cref="ArtifactType"/> that corresponds to the specified <paramref name="code"/>. Returns <see
         /// cref="ArtifactType.Undefined"/> if the event code does not match any known type.</returns>
-        public static ArtifactType ToArtifectType(this SysEventCode code)
+        public static ArtifactType ToArtifactType(this SysEventCode code)
         {
             switch (code)
             {

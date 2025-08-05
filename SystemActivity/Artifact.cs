@@ -35,12 +35,12 @@ namespace Nanolite_agent.SystemActivity
         }
 
         /// <summary>
-        /// Gets Object type of the artifect.
+        /// Gets object type of the artifact.
         /// </summary>
         public ArtifactType ObjectType { get; private set; }
 
         /// <summary>
-        /// Gets provides a identifier for the artifect based on its type and name.
+        /// Gets an identifier for the artifact based on its type and name.
         /// The format is "{objectName}@{objectType}".
         /// </summary>
         public string ArtifectID

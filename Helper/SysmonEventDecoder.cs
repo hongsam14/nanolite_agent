@@ -151,7 +151,7 @@ namespace Nanolite_agent.Helper
 
             eventObj.Add("Source", "sysmon");
 
-            eventObj.Add("TimeStamp", origin.TimeStamp);
+            eventObj.Add("Timestamp", origin.TimeStamp);
 
             switch (eventCode)
             {
