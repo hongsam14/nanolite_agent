@@ -70,7 +70,7 @@ namespace Nanolite_agent.SystemActivity
         /// the method returns immediately.</remarks>
         public void FlushActors()
         {
-            // heck if actorMap is already null
+            // check if actorMap is already null
             if (this.actorMap == null)
             {
                 return;
