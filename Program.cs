@@ -5,17 +5,64 @@
 namespace Nanolite_agent
 {
     using System;
+    using System.Text;
+    using System.Threading.Tasks;
     using Microsoft.Diagnostics.Tracing.Session;
     using Nanolite_agent.NanoException;
     using nanolite_agent.Properties;
 
-    internal class Program
+    /// <summary>
+    /// Represents the entry point of the application, responsible for initializing configurations, starting monitoring
+    /// sessions, and handling application lifecycle events.
+    /// </summary>
+    /// <remarks>This class initializes the necessary components, such as configuration, beacon, and event
+    /// sessions, and manages the application's main execution flow. It also handles user interruptions (e.g., Ctrl+C)
+    /// to gracefully stop monitoring and terminate the application.</remarks>
+    internal static class Program
     {
-        private static void Main(string[] args)
+        private static Config.Config config;
+        private static Beacon.SystemActivityBeacon bcon;
+        private static SystemActivity.SystemActivityRecorder systemRecorder;
+        private static EventSession.SysmonEventSession sysmonSession;
+        private static EventSession.KernelProcessEventSession kernelProcessSession;
+        private static EventSession.KernelRegistryEventSession kernelRegistrySession;
+
+        private static readonly string logo = @"
+    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡀⠀⠀⣀⣀⡀⠀
+    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣤⣶⣿⣽⣶⣾⣿⣿⣿⣿⠀
+    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⠂⣰⣿⣿⡿⠟⠋⣿⣿⣿⣿⣿⣿⠏⠀
+    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣶⣿⣣⣾⡿⠛⢉⣤⣶⣿⣿⣿⣿⣿⡿⠃⠀⠀
+    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⡄⣿⣿⣿⠟⢁⣤⣾⣿⣿⣿⣿⣿⣭⠥⠀⠀⠀⠀⠀
+    ⠀⠀⠀⠀⠀⠀⠀⣠⣾⣿⣷⡿⠋⣀⣴⣿⣿⣿⣿⣿⣷⠌⠉⠁⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠀⠀⠀⢀⣼⣿⣿⣿⠟⢀⣼⣿⣿⣿⣿⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠀⠀⢀⣾⣿⣿⡿⠃⣰⣿⣿⣿⣿⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠰⣄⣾⣿⣿⡿⠁⣼⣿⣿⣿⣿⣿⡟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⣀⢻⣿⣿⡟⢀⣾⣿⢻⣿⠻⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠙⢿⣿⡿⠀⣾⣿⣿⠈⠟⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠀⠀⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠀⢰⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠀⣼⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠀⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+     ____    ____  ____    ___   _      ____  ______    ___ 
+    |    \  /    ||    \  /   \ | |    |    ||      |  /  _]
+    |  _  ||  o  ||  _  ||     || |     |  | |      | /  [_ 
+    |  |  ||     ||  |  ||  O  || |___  |  | |_|  |_||    _]
+    |  |  ||  _  ||  |  ||     ||     | |  |   |  |  |   [_ 
+    |  |  ||  |  ||  |  ||     ||     | |  |   |  |  |     |
+    |__|__||__|__||__|__| \___/ |_____||____|  |__|  |_____|
+    c) 2025 Nanolite Agent by shhong ENKI Corp)
+    ";
+
+        private static async Task Main(string[] args)
         {
-            Config.Config config;
-            Beacon.SystemActivityBeacon bcon;
-            EventSession.SysmonEventSession sysmonSession;
+            var cancelCompleted = new TaskCompletionSource();
+
+            // print ascii logo with color yellow
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.OutputEncoding = Encoding.Unicode;
+            Console.WriteLine(logo);
+            Console.ResetColor();
+            Console.OutputEncoding = Encoding.UTF8;
 
             // check if the program is running as an administrator
             if (!TraceEventSession.IsElevated() ?? false)
@@ -50,16 +97,11 @@ namespace Nanolite_agent
                 Console.WriteLine(e.Message);
                 return;
             }
-#if DEBUG
-            // start event sessions
-            sysmonSession = new EventSession.SysmonEventSession();
-#else
 
             // Init Beacon
             try
             {
-                bcon = new Beacon.SystemActivityBeacon(config);
-                bcon.StartMonitoring();
+                bcon = new Beacon.SystemActivityBeacon(in config);
             }
             catch (BeaconException be)
             {
@@ -71,27 +113,95 @@ namespace Nanolite_agent
                 Console.WriteLine($"Beacon initialization failed: {e.Message}");
                 return;
             }
+
+            // Initialize SystemActivityRecorder
+            try
+            {
+                systemRecorder = new SystemActivity.SystemActivityRecorder(in bcon);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"SystemActivityRecorder initialization failed: {e.Message}");
+                return;
+            }
+
             // start event sessions
-            sysmonSession = new EventSession.SysmonEventSession(bcon);
-#endif
+            try
+            {
+                sysmonSession = new EventSession.SysmonEventSession(systemRecorder);
+                kernelProcessSession = new EventSession.KernelProcessEventSession(systemRecorder);
+                kernelRegistrySession = new EventSession.KernelRegistryEventSession(systemRecorder);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Event session initialization failed: {e.Message}");
+                return;
+            }
 
             // Ctrl + C add event
-            Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)
+            Console.CancelKeyPress += (object sender, ConsoleCancelEventArgs e) =>
             {
-                sysmonSession.StopSession();
-#if !DEBUG
-                bcon.StopMonitoring();
-#endif
+                Console.WriteLine("Ctrl + C pressed, stopping sessions and monitoring...");
+                e.Cancel = true; // Prevent the process from terminating immediately
+                _ = Task.Run(async () =>
+                {
+                    await CancelSequenceAsync();
+                    cancelCompleted.SetResult();
+                    Console.WriteLine("Monitoring stopped.");
+                });
             };
 
-            // Start Session
-            sysmonSession.StartSession();
+            try
+            {
+                // Start Beacon
+                bcon.StartMonitoring();
 
-            // Wait Session.
-            sysmonSession.WaitSession();
+                // Start Session
+                sysmonSession.StartSession();
+                kernelProcessSession.StartSession();
+                kernelRegistrySession.StartSession();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Failed to start event sessions {e.Message}");
+            }
+
+            Console.WriteLine("Press Ctrl + C to stop monitoring and exit...");
+
+            try
+            {
+                // Wait Session.
+                sysmonSession.WaitSession();
+                kernelProcessSession.WaitSession();
+                kernelRegistrySession.WaitSession();
+
+                await cancelCompleted.Task;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception raised while wait session: {ex.Message}");
+            }
 
             Console.WriteLine(value: DebugMessages.ExitMessage);
-            Console.ReadKey();
+        }
+
+        private static async Task CancelSequenceAsync()
+        {
+            // flush all activities
+            try
+            {
+                systemRecorder.Flush();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error flushing actors: {e.Message}");
+            }
+
+            // Stop all sessions
+            kernelRegistrySession.StopSession();
+            kernelProcessSession.StopSession();
+            sysmonSession.StopSession();
+            bcon.StopMonitoring();
         }
     }
 }

@@ -48,7 +48,7 @@ namespace Nanolite_agent.Config
             }
             catch (FileNotFoundException e)
             {
-                throw;
+                throw new ConfigException(DebugMessages.ConfigFileNotFoundErrMessage, e);
             }
             catch (Exception e)
             {

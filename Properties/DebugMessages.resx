@@ -132,6 +132,10 @@
   <data name="ConfigFileErrMessage" xml:space="preserve">
     <value>Config file is empty</value>
   </data>
+  <data name="ConfigFileNotFoundErrMessage" xml:space="preserve">
+    <value>Cannot find config file.</value>
+    <comment>Cannot find config file.</comment>
+  </data>
   <data name="ConfigFileReadErrMessage" xml:space="preserve">
     <value>Error while read config file</value>
   </data>
@@ -139,12 +143,24 @@
     <value>Config path cannot be null or empty</value>
   </data>
   <data name="ExitMessage" xml:space="preserve">
-    <value>Program terminated. Press any button to exit.</value>
+    <value>Program terminated.</value>
     <comment>exit message</comment>
   </data>
   <data name="PrivilegeMessage" xml:space="preserve">
     <value>Run as Administrator</value>
     <comment>This program should run as Administrator</comment>
+  </data>
+  <data name="SystemActivityInvalidOperationException" xml:space="preserve">
+    <value>Invalid operation at SystemActivity</value>
+  </data>
+  <data name="SystemActivityInvalidType" xml:space="preserve">
+    <value>Invalid Actor Type</value>
+  </data>
+  <data name="SystemActivityNullException" xml:space="preserve">
+    <value>Object cannot be null or empty</value>
+  </data>
+  <data name="SystemActivityUpsertException" xml:space="preserve">
+    <value>Failed to upsert actor activity to actor map</value>
   </data>
   <data name="TracepointAcceptErrMessage" xml:space="preserve">
     <value>Trace event data is not acceptable</value>

@@ -1,162 +1,19 @@
-﻿// <copyright file="Beacon.cs" company="PlaceholderCompany">
+﻿// <copyright file="SystemActivityBeacon.cs" company="PlaceholderCompany">
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
 namespace Nanolite_agent.Beacon
 {
     using System;
-    using System.Collections.Generic;
     using System.Diagnostics;
-    using System.Management;
-    using Google.Protobuf;
-    using Microsoft.Diagnostics.Tracing;
-    using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
+    using System.Net.Http;
     using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
-    using Nanolite_agent.Config;
-    using Nanolite_agent.Helper;
-    using Nanolite_agent.NanoException;
-    using Newtonsoft.Json.Linq;
     using OpenTelemetry;
     using OpenTelemetry.Exporter;
     using OpenTelemetry.Logs;
-    using OpenTelemetry.Metrics;
     using OpenTelemetry.Resources;
     using OpenTelemetry.Trace;
-    using static System.Net.Mime.MediaTypeNames;
-
-    public class ProcessContext
-    {
-        public ActivityTraceId TraceId { get; private set; }
-
-        public ActivitySpanId SpanId { get; private set; }
-
-        public ActivityContext Context { get; private set; }
-
-        public Activity ProcessActivity { get; private set; }
-
-        public int LogCount { get; private set; }
-
-        public Dictionary<string, ActorActivityContext> GetterSpan { get; private set; }
-
-        public Dictionary<string, ActorActivityContext> SetterSpan { get; private set; }
-
-        public ProcessContext(Activity processActivity)
-        {
-            this.TraceId = processActivity.TraceId;
-            this.SpanId = processActivity.SpanId;
-            this.Context = processActivity.Context;
-            this.ProcessActivity = processActivity;
-
-            this.GetterSpan = new Dictionary<string, ActorActivityContext>();
-            this.SetterSpan = new Dictionary<string, ActorActivityContext>();
-
-            // Initialize LogCount to 0
-            this.LogCount = 0;
-        }
-
-        public ActorActivityContext NewSetterEvent(ActivitySource activitySource, Artifect obj, ActorType type)
-        {
-            if (activitySource == null)
-            {
-                throw new ArgumentNullException(nameof(activitySource), "ActivitySource cannot be null");
-            }
-
-            if (obj == null)
-            {
-                throw new ArgumentNullException(nameof(obj), "Artifect object cannot be null");
-            }
-
-            // check if type is valid
-            if (!ActorTypeExtensions.IsSetter(type))
-            {
-                throw new NanoException.BeaconException($"Invalid ActorType for Setter: {type}");
-            }
-
-            // create ActorContext
-            ActorActivityContext actorActivityContext = null;
-            ActorContext newActor = new ActorContext(obj, type);
-
-            // Create ObjectActorContext if it does not exist
-            if (this.SetterSpan.ContainsKey(newActor.ActorID))
-            {
-                // get existing ActorActivityContext for Getter
-                actorActivityContext = this.SetterSpan[newActor.ActorID];
-            }
-            else
-            {
-                // Create a new ActorActivityContext for Getter
-                Activity newActivity = activitySource.CreateActivity(newActor.ActorID, ActivityKind.Internal, this.Context);
-                if (newActivity == null)
-                {
-                    throw new NanoException.BeaconException("Failed to create new activity for actor.");
-                }
-
-                // create new actor activity context
-                actorActivityContext = new ActorActivityContext(newActivity, newActor);
-
-                // Add the new ActorActivityContext to the GetterSpan dictionary
-                this.SetterSpan[newActor.ActorID] = actorActivityContext;
-            }
-
-            // Set tags for the activity
-            actorActivityContext.Activity.SetTag("type", "set");
-
-            // Start the activity
-            return actorActivityContext;
-        }
-
-        public ActorActivityContext NewGetterEvent(ActivitySource activitySource, Artifect obj, ActorType type)
-        {
-            if (activitySource == null)
-            {
-                throw new ArgumentNullException(nameof(activitySource), "ActivitySource cannot be null");
-            }
-
-            if (obj == null)
-            {
-                throw new ArgumentNullException(nameof(obj), "Artifect object cannot be null");
-            }
-
-            // check if type is valid
-            if (!ActorTypeExtensions.IsGetter(type))
-            {
-                throw new NanoException.BeaconException($"Invalid ActorType for Getter: {type}");
-            }
-
-            // create ActorContext
-            ActorActivityContext actorActivityContext = null;
-            ActorContext newActor = new ActorContext(obj, type);
-
-            // Create ObjectActorContext if it does not exist
-            if (this.GetterSpan.ContainsKey(newActor.ActorID))
-            {
-                // get existing ActorActivityContext for Getter
-                actorActivityContext = this.GetterSpan[newActor.ActorID];
-            }
-            else
-            {
-                // Create a new ActorActivityContext for Getter
-                Activity newActivity = activitySource.CreateActivity(newActor.ActorID, ActivityKind.Internal, this.Context);
-                if (newActivity == null)
-                {
-                    throw new NanoException.BeaconException("Failed to create new activity for actor.");
-                }
-
-                // create new actor activity context
-                actorActivityContext = new ActorActivityContext(newActivity, newActor);
-
-                // Add the new ActorActivityContext to the GetterSpan dictionary
-                this.GetterSpan[newActor.ActorID] = actorActivityContext;
-            }
-
-            // Set tags for the activity
-            actorActivityContext.Activity.SetTag("type", "get");
-
-            return actorActivityContext;
-        }
-    }
 
     /// <summary>
     /// Provides functionality and observility to monitor and log system activities using OpenTelemetry and OCSF Schema.
@@ -171,115 +28,159 @@ namespace Nanolite_agent.Beacon
     {
         private readonly string beaconName = "system_activity_beacon";
 
-        private readonly IHost host;
-
         // log exporter and processor
+        private readonly ILoggerFactory loggerFactory;
+
         private readonly OtlpLogExporter logExporter;
-        private readonly BatchLogRecordExportProcessor logProcessor;
 
         // trace provider, processor and span source
         private readonly TracerProvider tracerProvider;
-        private readonly BatchActivityExportProcessor traceProcessor;
 
-        // span source for Otel
-        private readonly ActivitySource spanSource;
-
-        // nano-agent config file
-        private readonly Nanolite_agent.Config.Config config;
-
-        // flag to check if beacon is running
-        private bool isRunning;
+        private readonly ResourceBuilder resource;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SystemActivityBeacon"/> class.
+        /// Initializes a new instance of the <see cref="SystemActivityBeacon"/> class, which sets up tracing and
+        /// logging for system activity monitoring using OpenTelemetry.
         /// </summary>
-        /// <param name="config">config.yml file.</param>
-        public SystemActivityBeacon(Nanolite_agent.Config.Config config)
+        /// <remarks>This constructor performs the following operations: <list type="bullet">
+        /// <item><description>Performs a health check to ensure the OpenTelemetry collector is
+        /// reachable.</description></item> <item><description>Initializes the OpenTelemetry tracing provider with the
+        /// specified configuration.</description></item> <item><description>Initializes the OpenTelemetry logging
+        /// provider with the specified configuration.</description></item> <item><description>Creates a logger and
+        /// activity source for system activity monitoring.</description></item> </list> Ensure that the <paramref
+        /// name="config"/> object contains valid settings for the collector's IP address, port, and exporter
+        /// name.</remarks>
+        /// <param name="config">The configuration object containing settings for the beacon, including the collector's IP address, port, and
+        /// exporter name. Cannot be <see langword="null"/>.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="config"/> is <see langword="null"/>.</exception>
+        /// <exception cref="NanoException.BeaconException">Thrown if the beacon initialization fails, such as when the collector health check fails or there is an
+        /// error constructing the trace and log providers.</exception>
+        public SystemActivityBeacon(in Nanolite_agent.Config.Config config)
         {
             if (config == null)
             {
                 throw new ArgumentNullException(nameof(config));
             }
 
-            string serviceName = config.Exporter;
-            this.isRunning = false;
+            string serviceName = this.beaconName;
+            this.IsRunning = false;
 
             // init Otel traceProvider
             try
             {
+                // health check for the beacon
+                try
+                {
+                    using (HttpClient httpClient1 = new HttpClient())
+                    {
+                        // check if the collector is reachable
+                        var response = httpClient1.GetAsync($"http://{config.CollectorIP}:13133/health").GetAwaiter().GetResult();
+                        Console.WriteLine($"Collector health check response: {response.StatusCode}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new NanoException.BeaconException("Beacon health check failed.", ex);
+                }
+
+                this.resource = ResourceBuilder.CreateDefault().AddService(serviceName);
+
                 OtlpExporterOptions option = new OtlpExporterOptions
                 {
                     // check config is valid.
                     Endpoint = new Uri($"http://{config.CollectorIP}:{config.CollectorPort}"),
+                    Protocol = OtlpExportProtocol.Grpc,
                 };
 
                 // initialize traceProvider with OtlpTraceExporter & BatchActivityExportProcessor
                 OtlpTraceExporter traceExporter = new OtlpTraceExporter(option);
-                this.traceProcessor = new BatchActivityExportProcessor(traceExporter);
+                BatchActivityExportProcessor traceProcessor = new BatchActivityExportProcessor(traceExporter);
+
                 this.tracerProvider = Sdk.CreateTracerProviderBuilder()
-                    .SetResourceBuilder(ResourceBuilder.CreateDefault()
-                    .AddService(serviceName))
-                    .AddSource(serviceName)
-                    .AddProcessor(this.traceProcessor)
+                    .SetSampler(new AlwaysOnSampler())
+                    .SetResourceBuilder(this.resource)
+                    .AddSource(config.Exporter)
+                    .AddProcessor(traceProcessor)
                     .Build();
 
                 // initialize log Exporter with OtlpLogExporter & BatchLogExportProcessor
                 this.logExporter = new OtlpLogExporter(option);
-                this.logProcessor = new BatchLogRecordExportProcessor(this.logExporter);
+                BatchLogRecordExportProcessor logProcessor = new BatchLogRecordExportProcessor(this.logExporter);
 
-                this.host = Host.CreateDefaultBuilder()
-                    .ConfigureServices((_, services) =>
+                this.loggerFactory = LoggerFactory.Create(loggingBuilder =>
+                {
+                    loggingBuilder.AddOpenTelemetry(options =>
                     {
-                        services.AddLogging(loggingBuilder =>
-                        {
-                            loggingBuilder.AddOpenTelemetry(options =>
-                            {
-                                options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName))
-                                    .AddProcessor(this.logProcessor);
-                            });
-                        });
-                    }).Build();
+                        options.IncludeScopes = false;
+                        options.IncludeFormattedMessage = false;
+                        options.ParseStateValues = false;
+
+                        options.SetResourceBuilder(this.resource);
+                        options.AddProcessor(logProcessor);
+                    });
+                });
             }
             catch (Exception e)
             {
-                throw new NanoException.BeaconException("error while construct beacon.", e);
+                throw new NanoException.BeaconException("error while construct trace & log providers.", e);
             }
 
-            // init Otel span source.
             try
             {
-                this.spanSource = new ActivitySource(name: config.Exporter);
+                this.Logger = this.loggerFactory.CreateLogger<Nanolite_agent.Beacon.SystemActivityBeacon>();
+                this.SystemActivitySource = new ActivitySource(config.Exporter);
             }
             catch (Exception e)
             {
                 throw new NanoException.BeaconException("error while construct beacon.", e);
             }
-
-            this.config = config;
         }
 
+        /// <summary>
+        /// Gets the logger for the system activity beacon.
+        /// </summary>
+        public ILogger<SystemActivityBeacon> Logger { get; private set; }
+
+        /// <summary>
+        /// Gets the root activity source for system activities.
+        /// </summary>
+        public ActivitySource SystemActivitySource { get; private set; }
+
+        /// <summary>
+        /// Gets a value indicating whether the beacon is currently running.
+        /// </summary>
+        public bool IsRunning { get; private set; }
+
+        /// <summary>
+        /// Starts monitoring the beacon.
+        /// </summary>
+        /// <remarks>This method sets the beacon to a running state. If the beacon is already running,  an
+        /// exception is thrown. Ensure that the beacon is not running before calling this method.</remarks>
+        /// <exception cref="NanoException.BeaconException">Thrown if the beacon is already running.</exception>
         public void StartMonitoring()
         {
-            if (!this.isRunning)
+            if (this.IsRunning)
             {
-                throw new NanoException.BeaconException("Beacon is not running.");
+                throw new NanoException.BeaconException("Beacon is already running.");
             }
-
-            // start Otel logger
-            this.host?.Start();
 
             // set running flag
-            this.isRunning = true;
+            this.IsRunning = true;
         }
 
+        /// <summary>
+        /// Stops the monitoring process and releases associated resources.
+        /// </summary>
+        /// <remarks>This method halts the monitoring process if it is currently running. It ensures that
+        /// all  pending activities are flushed, and any associated resources, such as log exporters,  trace providers,
+        /// and log processors, are properly disposed of.</remarks>
+        /// <exception cref="NanoException.BeaconException">Thrown if the monitoring process is not currently running.</exception>
         public void StopMonitoring()
         {
-            if (!this.isRunning)
+            if (!this.IsRunning)
             {
                 throw new NanoException.BeaconException("Beacon is not running.");
             }
-
-            // flush Activity Dictionaries
 
             // flush and shutdown Otel log exporter
             this.logExporter?.ForceFlush();
@@ -287,348 +188,12 @@ namespace Nanolite_agent.Beacon
 
             // flush and shutdown Otel trace provider
             this.tracerProvider?.ForceFlush();
+
+            // dispose Otel log processor
+            this.loggerFactory.Dispose();
+            this.tracerProvider?.Dispose();
+
             this.tracerProvider?.Shutdown();
-
-            // stop Otel logger
-            this.host?.StopAsync().Wait();
         }
-
-        public void ProcessActivity(SysEventCode eventCode, JObject eventlog)
-        {
-            switch (eventCode)
-            {
-                case SysEventCode.ProcessCreation:
-                    this.ProcessLaunch(eventlog);
-                    break;
-                default:
-                    // Unknown event code, do nothing
-                    break;
-            }
-        }
-
-        public void FileSystemActivity(SysEventCode eventCode, JObject eventlog)
-        {
-        }
-
-        public void NetworkActivity(SysEventCode eventCode, JObject eventlog)
-        {
-        }
-
-        private void ProcessLaunch(JObject traceData)
-        {
-            //Activity span = null;
-            //ActivityContext spanContext;
-            //ActivityKind activityKind;
-            //JObject log = null;
-            //ulong? gid = null;
-            //long? pid = null;
-            //long? ppid = null;
-            //string image;
-
-            //log = this.processCreateLog.EventLog(traceData);
-            //if (log == null)
-            //{
-            //    // filtered
-            //    return;
-            //}
-
-            //pid = log.GetValue("ProcessID")?.ToObject<long>();
-            //ppid = log.GetValue("ParentID")?.ToObject<long>();
-            //gid = log.GetValue("UniqueProcessKey")?.ToObject<ulong>();
-            //image = this.GetImage(pid.Value) ?? log.GetValue("ImageFileName")?.ToString();
-
-            //// check parent id
-            //if (this.processSpan.ContainsKey(ppid.Value))
-            //{
-            //    // generate sub span
-            //    pSpan = this.processSpan[ppid.Value];
-            //    spanContext = pSpan.Context;
-            //    activityKind = ActivityKind.Internal;
-            //}
-            //else
-            //{
-            //    // there is no context. so create new Root Span context.
-            //    spanContext = new ActivityContext(ActivityTraceId.CreateRandom(), ActivitySpanId.CreateRandom(), ActivityTraceFlags.Recorded);
-            //    activityKind = ActivityKind.Internal;
-            //}
-
-            //span = this.spanSource.CreateActivity(image, activityKind, spanContext);
-
-            //// start pid span
-            //if (span == null)
-            //{
-            //    throw new NanoException.BeaconException("Failed to create new span");
-            //}
-
-            //span.SetTag("logsource.product", "windows");
-            //span.SetTag("process.image", image);
-
-
-            //span.Start();
-            //span.AddEvent(new ActivityEvent(log.ToString()));
-
-            //Console.WriteLine(log.ToString());
-
-            //// For test
-            //span.SetStatus(ActivityStatusCode.Ok);
-
-            //// add span to processSpan
-            //this.processSpan[pid.Value] = span;
-        }
-
-        public void ProcessTerminate(JObject traceData)
-        {
-            //Activity pSpan = null;
-            //Activity span = null;
-            //JObject log = null;
-            //long? pid = null;
-            //long? ppid = null;
-            //string image;
-
-
-            //log = this.processTerminateLog.EventLog(traceData);
-            //if (log == null)
-            //{
-            //    // filtered
-            //    return;
-            //}
-
-            //pid = log.GetValue("ProcessID")?.ToObject<long>();
-            //ppid = log.GetValue("ParentID")?.ToObject<long>();
-            //image = log.GetValue("ImageFileName")?.ToString();
-
-            //if (ppid.HasValue && this.processSpan.ContainsKey(ppid.Value))
-            //{
-            //    // parent pid is exists. activate parent span
-            //    pSpan = this.processSpan[ppid.Value];
-            //}
-
-            //// stop pid span
-            //if (pid.HasValue && this.processSpan.ContainsKey(pid.Value))
-            //{
-            //    span = this.processSpan[pid.Value];
-            //    span.AddEvent(new ActivityEvent(log.ToString()));
-            //    //span.SetStatus(ActivityStatusCode.Ok);
-            //    span.Stop();
-
-            //    this.processSpan.Remove(pid.Value);
-            //}
-
-            //Console.WriteLine(log.ToString());
-        }
-
-        public void TcpIpConnect(TcpIpConnectTraceData traceData)
-        {
-            //Activity pSpan = null;
-            //Activity span = null;
-            //ActivityContext spanContext;
-            //ActivityKind activityKind;
-            //JObject log = null;
-            //long? pid = null;
-            //string image;
-            //string daddr;
-            //string saddr;
-            //string dport;
-            //string sport;
-            //string dAddress;
-            //string sAddress;
-
-            //log = this.networkCreate.EventLog(traceData);
-            //if (log == null)
-            //{
-            //    // filtered
-            //    return;
-            //}
-
-            //pid = log.GetValue("UsermodePid")?.ToObject<long>();
-            //image = this.GetImage(pid.Value) ?? log.GetValue("ImageFileName")?.ToString();
-            //daddr = log.GetValue("daddr")?.ToString();
-            //saddr = log.GetValue("saddr")?.ToString();
-            //dport = log.GetValue("dport")?.ToString();
-            //sport = log.GetValue("sport")?.ToString();
-            //dAddress = $"{daddr}:{dport}";
-            //sAddress = $"{saddr}:{sport}";
-
-            //// check parent id
-            //if (this.processSpan.ContainsKey(pid.Value))
-            //{
-            //    // generate sub span
-            //    pSpan = this.processSpan[pid.Value];
-            //    spanContext = pSpan.Context;
-            //    activityKind = ActivityKind.Internal;
-            //}
-            //else
-            //{
-            //    // there is no context. so create new Root Span context.
-            //    spanContext = new ActivityContext(ActivityTraceId.CreateRandom(), ActivitySpanId.CreateRandom(), ActivityTraceFlags.Recorded);
-            //    activityKind = ActivityKind.Internal;
-            //    pSpan = this.spanSource.CreateActivity(image, activityKind, spanContext);
-            //    pSpan.SetTag("logsource.product", "windows");
-            //    pSpan.SetTag("process.image", image);
-            //    pSpan.SetTag("process.type", "background");
-
-            //    pSpan.Start();
-            //    pSpan.Stop();
-
-            //    this.processSpan[pid.Value] = pSpan;
-            //    spanContext = pSpan.Context;
-            //}
-
-            //span = this.spanSource.CreateActivity($"{sAddress}->{dAddress}", activityKind, spanContext);
-
-            //// start pid span
-            //if (span == null)
-            //{
-            //    throw new NanoException.BeaconException("Failed to create new span");
-            //}
-
-            //span.SetTag("logsource.product", "windows");
-            //span.SetTag("process.image", image);
-            //span.SetTag("network.protocol", "TcpIpv4");
-            //span.SetTag("network.destination", dAddress);
-            //span.SetTag("network.source", $"{saddr}:{sport}");
-
-
-            //span.Start();
-            //span.AddEvent(new ActivityEvent(log.ToString()));
-
-            //Console.WriteLine(log.ToString());
-
-            //// For test
-            //span.SetStatus(ActivityStatusCode.Ok);
-
-            //// add span to tcpipv4Span
-            //this.tcpIpv4Span[$"{sAddress}->{dAddress}"] = span;
-        }
-
-        public void TcpIpDisconnect(TcpIpTraceData traceData)
-        {
-            //Activity span = null;
-            //JObject log = null;
-            //string daddr;
-            //string dport;
-            //string saddr;
-            //string sport;
-            //string dAddress;
-            //string sAddress;
-
-
-            //log = this.networkDisconnect.EventLog(traceData);
-            //if (log == null)
-            //{
-            //    // filtered
-            //    return;
-            //}
-
-            //daddr = log.GetValue("daddr")?.ToString();
-            //saddr = log.GetValue("saddr")?.ToString();
-            //dport = log.GetValue("dport")?.ToString();
-            //sport = log.GetValue("sport")?.ToString();
-            //dAddress = $"{daddr}:{dport}";
-            //sAddress = $"{saddr}:{sport}";
-
-            //string key = $"{sAddress}->{dAddress}";
-
-            //if (this.tcpIpv4Span.ContainsKey(key))
-            //{
-            //    // connection is exists. activate parent span
-            //    span = this.tcpIpv4Span[key];
-
-            //    span.AddEvent(new ActivityEvent(log.ToString()));
-
-            //    span.Stop();
-
-            //    this.tcpIpv4Span.Remove(key);
-            //}
-
-            //Console.WriteLine(log.ToString());
-        }
-
-        public void TcpIpSend(TcpIpSendTraceData traceData)
-        {
-            //Activity span = null;
-            //ActivityContext spanContext;
-            //ActivityKind activityKind;
-            //JObject log = null;
-            //long? pid = null;
-            //string image;
-            //string daddr;
-            //string dport;
-            //string saddr;
-            //string sport;
-            //string dAddress;
-            //string sAddress;
-            //string key;
-
-            //log = this.processCreateLog.EventLog(traceData);
-            //if (log == null)
-            //{
-            //    // filtered
-            //    return;
-            //}
-
-            //pid = log.GetValue("UsermodePid")?.ToObject<long>();
-            //image = this.GetImage(pid.Value) ?? log.GetValue("ImageFileName")?.ToString();
-            //daddr = log.GetValue("daddr")?.ToString();
-            //saddr = log.GetValue("saddr")?.ToString();
-            //dport = log.GetValue("dport")?.ToString();
-            //sport = log.GetValue("sport")?.ToString();
-            //dAddress = $"{daddr}:{dport}";
-            //sAddress = $"{saddr}:{sport}";
-
-            //key = $"{sAddress}->{dAddress}";
-
-            //// check parent span
-            //if (this.tcpIpv4Span.ContainsKey(key))
-            //{
-            //    // append event log to span
-            //    span = this.tcpIpv4Span[key];
-            //    span.AddEvent(new ActivityEvent(log.ToString()));
-            //}
-        }
-
-        public void TcpIpRecv(TcpIpTraceData traceData)
-        {
-            //    Activity span = null;
-            //    ActivityContext spanContext;
-            //    ActivityKind activityKind;
-            //    JObject log = null;
-            //    long? pid = null;
-            //    string image;
-            //    string daddr;
-            //    string dport;
-            //    string saddr;
-            //    string sport;
-            //    string dAddress;
-            //    string sAddress;
-            //    string key;
-
-            //    log = this.processCreateLog.EventLog(traceData);
-            //    if (log == null)
-            //    {
-            //        // filtered
-            //        return;
-            //    }
-
-            //    pid = log.GetValue("UsermodePid")?.ToObject<long>();
-            //    image = this.GetImage(pid.Value) ?? log.GetValue("ImageFileName")?.ToString();
-            //    daddr = log.GetValue("daddr")?.ToString();
-            //    saddr = log.GetValue("saddr")?.ToString();
-            //    dport = log.GetValue("dport")?.ToString();
-            //    sport = log.GetValue("sport")?.ToString();
-            //    dAddress = $"{daddr}:{dport}";
-            //    sAddress = $"{saddr}:{sport}";
-
-            //    key = $"{sAddress}->{dAddress}";
-
-            //    // check parent span
-            //    if (this.tcpIpv4Span.ContainsKey(key))
-            //    {
-            //        // append event log to span
-            //        span = this.tcpIpv4Span[key];
-            //        span.AddEvent(new ActivityEvent(log.ToString()));
-            //    }
-        }
-
     }
 }
