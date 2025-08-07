@@ -8,6 +8,7 @@ namespace Nanolite_agent.SystemActivity.Context
     using System.Diagnostics;
     using Nanolite_agent.Helper;
     using nanolite_agent.Properties;
+    using Microsoft.Diagnostics.Tracing.Parsers.Clr;
 
     /// <summary>
     /// Provides context for processing activities within a system, including managing actor activities and associating
@@ -62,6 +63,11 @@ namespace Nanolite_agent.SystemActivity.Context
                     parentProcessContext.Activity.Context);
             }
 
+            // set the activity type to NOT_ACTOR.
+            // This means that this context is not specifically an actor context.
+            // because actor context is used to represent the actor that process is behaviored and influence on Artifacts.
+            this.ActivityType = ActorActivityType.NOT_ACTOR;
+
             // start activity to generate a span
             // Important: this will generate a span for the process activity
             // This sequence is important because process object activity's name is set with the span ID
@@ -74,7 +80,7 @@ namespace Nanolite_agent.SystemActivity.Context
             this.Process = new ProcessContext(procArtifact);
 
             // set real name of activity
-            this.Activity.DisplayName = this.Process.ContextID;
+            this.Activity.DisplayName = this.ContextID;
 
             // set the otel tags for the activity
             this.Activity.SetTag("process.name", image);
@@ -93,6 +99,23 @@ namespace Nanolite_agent.SystemActivity.Context
         /// Gets the activity associated with this process context.
         /// </summary>
         public ProcessContext Process { get; private set; }
+
+        /// <summary>
+        /// Gets the type of activity performed by the actor in this process context.
+        /// The value is fixed to the 'NOT_ACTOR' type, indicating that this context is not specifically.
+        /// </summary>
+        public ActorActivityType ActivityType { get; private set; }
+
+        /// <summary>
+        /// Gets the unique context ID for this process activity.
+        /// </summary>
+        public string ContextID
+        {
+            get
+            {
+                return $"{this.Process.ContextID}@{this.ActivityType}";
+            }
+        }
 
         /// <summary>
         /// Updates or inserts an activity based on the specified artifact and actor type.
