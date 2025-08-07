@@ -70,7 +70,7 @@ namespace Nanolite_agent.SystemActivity.Context
             this.Activity.Start();
 
             // create a new Artifact for the process
-            Artifact procArtifact = new Artifact(ArtifactType.Process, this.Activity.SpanId.ToString());
+            Artifact procArtifact = new Artifact(ArtifactType.PROCESS, this.Activity.SpanId.ToString());
             this.Process = new ProcessContext(procArtifact);
 
             // set real name of activity
@@ -170,5 +170,7 @@ namespace Nanolite_agent.SystemActivity.Context
             this.Activity = null;
             this.Process = null;
         }
+
+
     }
 }
