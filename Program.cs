@@ -83,7 +83,7 @@ namespace Nanolite_agent
                 {
                     CollectorIP = "localhost",
                     CollectorPort = "4317",
-                    Exporter = "TestBed",
+                    Exporter = Guid.NewGuid().ToString(),
                 };
                 config = new Config.Config(dummyConfigWrapper);
 #else
