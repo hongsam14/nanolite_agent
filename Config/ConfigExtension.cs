@@ -57,15 +57,16 @@ namespace Nanolite_agent.Config
 
             // Deserialize the config file
             IDeserializer deserializer = new DeserializerBuilder()
-                            .WithNamingConvention(CamelCaseNamingConvention.Instance)
                             .Build();
+            Console.WriteLine($"Config file content: {configStr}");
             try
             {
                 configWrapper = deserializer.Deserialize<ConfigWrapper>(configStr);
             }
             catch (Exception e)
             {
-                throw new ConfigException(DebugMessages.ConfigFileDeserializeErrMessage, e);
+                Console.Write(e.ToString());
+                throw new ConfigException(DebugMessages.ConfigFileDeserializeErrMessage);
             }
 
             return new Config(configWrapper);
