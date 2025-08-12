@@ -10,6 +10,7 @@ namespace Nanolite_agent
     using Microsoft.Diagnostics.Tracing.Session;
     using Nanolite_agent.NanoException;
     using nanolite_agent.Properties;
+    using Nanolite_agent.EventSession;
 
     /// <summary>
     /// Represents the entry point of the application, responsible for initializing configurations, starting monitoring
@@ -25,6 +26,7 @@ namespace Nanolite_agent
         private static SystemActivity.SystemActivityRecorder systemRecorder;
         private static EventSession.SysmonEventSession sysmonSession;
         private static EventSession.KernelProcessEventSession kernelProcessSession;
+        private static EventSession.KernelThreadEventSession kernelThreadSession;
         private static EventSession.KernelRegistryEventSession kernelRegistrySession;
 
         private static readonly string logo = @"
@@ -83,7 +85,7 @@ namespace Nanolite_agent
                 {
                     CollectorIP = "localhost",
                     CollectorPort = "4317",
-                    Exporter = "TestBed",
+                    Exporter = Guid.NewGuid().ToString(),
                 };
                 config = new Config.Config(dummyConfigWrapper);
 #else
@@ -130,6 +132,7 @@ namespace Nanolite_agent
             {
                 sysmonSession = new EventSession.SysmonEventSession(systemRecorder);
                 kernelProcessSession = new EventSession.KernelProcessEventSession(systemRecorder);
+                kernelThreadSession = new EventSession.KernelThreadEventSession(systemRecorder);
                 kernelRegistrySession = new EventSession.KernelRegistryEventSession(systemRecorder);
             }
             catch (Exception e)
@@ -159,6 +162,7 @@ namespace Nanolite_agent
                 // Start Session
                 sysmonSession.StartSession();
                 kernelProcessSession.StartSession();
+                kernelThreadSession.StartSession();
                 kernelRegistrySession.StartSession();
             }
             catch (Exception e)
@@ -173,13 +177,14 @@ namespace Nanolite_agent
                 // Wait Session.
                 sysmonSession.WaitSession();
                 kernelProcessSession.WaitSession();
+                kernelThreadSession.WaitSession();
                 kernelRegistrySession.WaitSession();
 
                 await cancelCompleted.Task;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Exception raised while wait session: {ex.Message}");
+                Console.WriteLine($"Exception raised while wait session: {ex.Message} {ex.StackTrace}");
             }
 
             Console.WriteLine(value: DebugMessages.ExitMessage);
@@ -187,6 +192,13 @@ namespace Nanolite_agent
 
         private static async Task CancelSequenceAsync()
         {
+            // Stop all sessions
+            kernelRegistrySession.StopSession();
+            kernelThreadSession.StopSession();
+            kernelThreadSession.StopSession();
+            kernelProcessSession.StopSession();
+            sysmonSession.StopSession();
+
             // flush all activities
             try
             {
@@ -197,10 +209,7 @@ namespace Nanolite_agent
                 Console.WriteLine($"Error flushing actors: {e.Message}");
             }
 
-            // Stop all sessions
-            kernelRegistrySession.StopSession();
-            kernelProcessSession.StopSession();
-            sysmonSession.StopSession();
+            // Stop Beacon
             bcon.StopMonitoring();
         }
     }

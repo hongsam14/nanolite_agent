@@ -12,32 +12,32 @@ namespace Nanolite_agent.SystemActivity
         /// <summary>
         /// Represents an undefined state or value.
         /// </summary>
-        Undefined = 0,
+        UNDEFINED = 0,
 
         /// <summary>
         /// File system artifact.
         /// </summary>
-        File,
+        FILE,
 
         /// <summary>
         /// Registry artifact.
         /// </summary>
-        Registry,
+        REGISTRY,
 
         /// <summary>
         /// Network artifact.
         /// </summary>
-        Network,
+        NETWORK,
 
         /// <summary>
         ///  Process artifact. This is not Process Object. This is a type of artifact that represents a process injection.
         /// </summary>
-        Process,
+        PROCESS,
 
         /// <summary>
         /// Module artifact
         /// </summary>
-        Module,
+        MODULE,
     }
 
     /// <summary>
@@ -48,7 +48,7 @@ namespace Nanolite_agent.SystemActivity
         /// <summary>
         /// Represents an undefined actor type.
         /// </summary>
-        Undefined = 0,
+        UNDEFINED = 0,
 
         /// <summary>
         /// Represents an actor that is not an actor in the system.

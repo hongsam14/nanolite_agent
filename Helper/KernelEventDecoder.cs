@@ -5,6 +5,7 @@
 namespace Nanolite_agent.Helper
 {
     using System;
+    using System.Diagnostics;
     using Microsoft.Diagnostics.Tracing;
     using Nanolite_agent.EventModel;
     using Newtonsoft.Json.Linq;
@@ -52,6 +53,24 @@ namespace Nanolite_agent.Helper
         }
 
         /// <summary>
+        /// Decodes a kernel thread start event from the specified trace event.
+        /// </summary>
+        /// <param name="origin">The trace event to decode, representing a thread start event.</param>
+        /// <returns>A <see cref="JObject"/> representing the decoded thread start event.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="origin"/> is <see langword="null"/>.</exception>
+        public static JObject DecodeKernelThreadStartEvent(TraceEvent origin)
+        {
+            JObject result;
+
+            if (origin == null)
+            {
+                throw new ArgumentNullException(nameof(origin));
+            }
+
+            return EventFromCode(SysEventCode.ThreadStart, origin);
+        }
+
+        /// <summary>
         /// Decodes a kernel registry query event from the provided trace event.
         /// </summary>
         /// <param name="origin">The trace event containing the kernel registry query data. Cannot be <see langword="null"/>.</param>
@@ -89,6 +108,23 @@ namespace Nanolite_agent.Helper
                     break;
                 case SysEventCode.ProcessTerminated:
                     metadataObj = KernelEventDecoder.DecodeKernelMetadata<KernelProcessStopMetadata>(origin);
+                    break;
+                case SysEventCode.ThreadStart:
+                    string imageName;
+
+                    // get image name with process id.
+                    try
+                    {
+                        imageName = Process.GetProcessById(origin.ProcessID).MainModule.FileName;
+                    }
+                    catch (Exception ex)
+                    {
+                        // log the exception
+                        imageName = "unknown"; // fallback to unknown if unable to retrieve
+                    }
+
+                    metadataObj = KernelEventDecoder.DecodeKernelMetadata<KernelThreadStartMetadata>(origin);
+                    metadataObj.Add("ImageFileName", imageName);
                     break;
                 case SysEventCode.RegistryQuery:
                     // Use specific method for registry query metadata.

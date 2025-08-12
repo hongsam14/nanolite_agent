@@ -24,6 +24,8 @@ namespace Nanolite_agent.Helper
             {
                 case SysEventCode.ProcessCreation:
                     return "process_creation";
+                case SysEventCode.ThreadStart:
+                    return "thread_start";
                 case SysEventCode.ProcessAccess:
                     return "process_access";
                 case SysEventCode.ProcessTerminated:
@@ -77,6 +79,7 @@ namespace Nanolite_agent.Helper
             {
                 case SysEventCode.ProcessCreation:
                 case SysEventCode.ProcessTerminated:
+                case SysEventCode.ThreadStart:
                     return ActorType.NOT_ACTOR;
                 case SysEventCode.ProcessAccess:
                 case SysEventCode.CreateRemoteThread:
@@ -110,7 +113,7 @@ namespace Nanolite_agent.Helper
                 case SysEventCode.RegistryQuery:
                     return ActorType.REG_QUERY;
                 default:
-                    return ActorType.Undefined;
+                    return ActorType.UNDEFINED;
             }
         }
 
@@ -125,31 +128,32 @@ namespace Nanolite_agent.Helper
             switch (code)
             {
                 case SysEventCode.ProcessCreation:
+                case SysEventCode.ThreadStart:
                 case SysEventCode.ProcessAccess:
                 case SysEventCode.ProcessTerminated:
                 case SysEventCode.CreateRemoteThread:
                 case SysEventCode.ProcessTampering:
-                    return ArtifactType.Process;
+                    return ArtifactType.PROCESS;
                 case SysEventCode.NetworkConnection:
                 case SysEventCode.DnsQuery:
-                    return ArtifactType.Network;
+                    return ArtifactType.NETWORK;
                 case SysEventCode.DriverLoad:
                 case SysEventCode.ImageLoad:
-                    return ArtifactType.Module;
+                    return ArtifactType.MODULE;
                 case SysEventCode.FileCreate:
                 case SysEventCode.FileModified:
                 case SysEventCode.FileDelete:
                 case SysEventCode.CreateStreamHash:
                 case SysEventCode.RawAccessReadDetected:
-                    return ArtifactType.File;
+                    return ArtifactType.FILE;
                 case SysEventCode.RegistryAdd:
                 case SysEventCode.RegistryDelete:
                 case SysEventCode.RegistrySet:
                 case SysEventCode.RegistryRename:
                 case SysEventCode.RegistryQuery:
-                    return ArtifactType.Registry;
+                    return ArtifactType.REGISTRY;
                 default:
-                    return ArtifactType.Undefined;
+                    return ArtifactType.UNDEFINED;
             }
         }
     }

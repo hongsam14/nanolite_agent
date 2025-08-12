@@ -1,0 +1,56 @@
+﻿<Weavers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="FodyWeavers.xsd">
+	<Costura>
+		<!--
+      [기본 동작]
+      - 참조된 '관리(Managed) DLL'은 exe 내부에 리소스로 임베드되고 런타임에 메모리에서 로드됩니다.
+      - '네이티브 DLL'은 필요 시 임시 폴더로 자동 추출되어 로드됩니다.
+      - 별도 설정이 없어도 동작합니다.
+    -->
+
+		<!-- (선택) 임베드에서 제외할 어셈블리(플러그인 등 동적 로드용) -->
+		<!--
+    <ExcludeAssemblies>
+      Plugin.* 
+      SomeLegacy.Library
+    </ExcludeAssemblies>
+    -->
+
+		<!-- (선택) 임베드에 포함할 어셈블리만 명시(화이트리스트; 나머지는 제외) -->
+		<!--
+    <IncludeAssemblies>
+      MyCompany.* 
+      Newtonsoft.Json
+    </IncludeAssemblies>
+    -->
+
+		<!-- (선택) 네이티브 DLL을 명시적으로 포함해야 할 때 -->
+		<!--
+    <Unmanaged32Assemblies>
+      native_x86.dll
+    </Unmanaged32Assemblies>
+    <Unmanaged64Assemblies>
+      native_x64.dll
+    </Unmanaged64Assemblies>
+    -->
+
+		<!-- (선택) 특정 어셈블리의 선로드 순서가 필요할 때 -->
+		<!--
+    <PreloadOrder>
+      Newtonsoft.Json
+      MyCoreLib
+    </PreloadOrder>
+    -->
+
+		<!-- (선택) 고급 옵션(필요할 때만 사용)
+         - DisableCompression: true로 두면 압축 해제 비용/오탐 줄이는 대신 exe가 커질 수 있음
+         - IncludeDebugSymbols: PDB도 임베드
+         - VerifyAssembly: 위빙 후 검증
+    -->
+		<!--
+    <DisableCompression>true</DisableCompression>
+    <IncludeDebugSymbols>true</IncludeDebugSymbols>
+    <VerifyAssembly>true</VerifyAssembly>
+    -->
+		<VerifyAssembly>true</VerifyAssembly>
+	</Costura>
+</Weavers>

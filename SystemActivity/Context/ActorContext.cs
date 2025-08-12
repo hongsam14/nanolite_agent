@@ -28,7 +28,7 @@ namespace Nanolite_agent.SystemActivity.Context
         /// </exception>
         public ActorContext(Artifact artifectContext, ActorType type)
         {
-            if (artifectContext == null || type == ActorType.Undefined)
+            if (artifectContext == null || type == ActorType.UNDEFINED)
             {
                 throw new ArgumentNullException(nameof(artifectContext), DebugMessages.SystemActivityNullException);
             }
@@ -68,7 +68,7 @@ namespace Nanolite_agent.SystemActivity.Context
         {
             get
             {
-                if (this.ArtifactContext == null || this.Type == ActorType.Undefined)
+                if (this.ArtifactContext == null || this.Type == ActorType.UNDEFINED)
                 {
                     return null;
                 }

@@ -303,7 +303,7 @@ namespace Nanolite_agent.SystemActivity
             ArgumentNullException.ThrowIfNull(syslog);
 
             actorType = sysmonCode.ToActorType();
-            if (actorType == ActorType.Undefined)
+            if (actorType == ActorType.UNDEFINED)
             {
                 throw new NanoException.SystemActivityException($"Unsupported sysmon code: {sysmonCode}");
             }

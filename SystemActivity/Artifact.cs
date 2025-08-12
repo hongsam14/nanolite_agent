@@ -23,7 +23,7 @@ namespace Nanolite_agent.SystemActivity
         /// </exception>
         public Artifact(ArtifactType objectType, string objectName)
         {
-            if (string.IsNullOrEmpty(objectName) || objectType == ArtifactType.Undefined)
+            if (string.IsNullOrEmpty(objectName) || objectType == ArtifactType.UNDEFINED)
             {
                 throw new ArgumentNullException(nameof(objectName), DebugMessages.SystemActivityNullException);
             }
@@ -51,7 +51,7 @@ namespace Nanolite_agent.SystemActivity
             get
             {
                 // Return null or empty if objectName is null/empty or objectType is Undefined
-                if (string.IsNullOrEmpty(this.ObjectName) || this.ObjectType == ArtifactType.Undefined)
+                if (string.IsNullOrEmpty(this.ObjectName) || this.ObjectType == ArtifactType.UNDEFINED)
                 {
                     return null;
                 }

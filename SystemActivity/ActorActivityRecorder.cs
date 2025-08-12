@@ -114,7 +114,7 @@ namespace Nanolite_agent.SystemActivity
             // null checfor artifect and type
             ArgumentNullException.ThrowIfNull(processActivity);
             ArgumentNullException.ThrowIfNull(artifect);
-            if (type == ActorType.Undefined)
+            if (type == ActorType.UNDEFINED)
             {
                 throw new ArgumentNullException(nameof(artifect), DebugMessages.SystemActivityNullException);
             }
