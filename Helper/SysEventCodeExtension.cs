@@ -24,6 +24,8 @@ namespace Nanolite_agent.Helper
             {
                 case SysEventCode.ProcessCreation:
                     return "process_creation";
+                case SysEventCode.ThreadStart:
+                    return "thread_start";
                 case SysEventCode.ProcessAccess:
                     return "process_access";
                 case SysEventCode.ProcessTerminated:
@@ -77,6 +79,7 @@ namespace Nanolite_agent.Helper
             {
                 case SysEventCode.ProcessCreation:
                 case SysEventCode.ProcessTerminated:
+                case SysEventCode.ThreadStart:
                     return ActorType.NOT_ACTOR;
                 case SysEventCode.ProcessAccess:
                 case SysEventCode.CreateRemoteThread:
@@ -125,6 +128,7 @@ namespace Nanolite_agent.Helper
             switch (code)
             {
                 case SysEventCode.ProcessCreation:
+                case SysEventCode.ThreadStart:
                 case SysEventCode.ProcessAccess:
                 case SysEventCode.ProcessTerminated:
                 case SysEventCode.CreateRemoteThread:
