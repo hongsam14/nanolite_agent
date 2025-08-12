@@ -127,6 +127,12 @@ namespace Nanolite_agent.EventSession
             // null check for eventData
             ArgumentNullException.ThrowIfNull(eventData);
 
+            // if pid is exists in map, skip this event to prevent duplicate processing
+            if (this.sysActRecorder.IsProcessTracked(eventData.ProcessID))
+            {
+                return;
+            }
+
             syslog = this.etwKernelTracepoint.GetKernelProcessCreateLog(eventData);
             if (syslog == null)
             {
@@ -169,7 +175,7 @@ namespace Nanolite_agent.EventSession
                 return;
             }
 
-            syslog = this.etwKernelTracepoint.GetKernelProcessCreateLog(eventData);
+            syslog = this.etwKernelTracepoint.GetKernelProcessStopLog(eventData);
             if (syslog == null)
             {
                 return;
