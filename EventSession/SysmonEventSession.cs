@@ -258,8 +258,6 @@ namespace Nanolite_agent.EventSession
                 return;
             }
 
-
-
             switch (code)
             {
                 case SysEventCode.ProcessCreation:

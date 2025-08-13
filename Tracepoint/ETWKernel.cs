@@ -26,7 +26,6 @@ namespace Nanolite_agent.Tracepoint
         public ETWKernel()
             : base("kernel_process")
         {
-            this.PostFilterFunc += this.FilterMyThread;
         }
 
         /// <summary>
@@ -109,6 +108,12 @@ namespace Nanolite_agent.Tracepoint
 
             // run post filter function
             if (!this.PostFilterFunc(log))
+            {
+                return null;
+            }
+
+            // run additional filter to exclude logs related to the agent itself
+            if (!this.FilterMyThread(log))
             {
                 return null;
             }
