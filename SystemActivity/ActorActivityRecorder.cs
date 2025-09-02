@@ -84,6 +84,7 @@ namespace Nanolite_agent.SystemActivity
                 {
                     // set the log.count to activity tag
                     actorActivityContext.Activity.SetTag("log.count", actorActivityContext.Actor.LogCount);
+                    actorActivityContext.Activity.SetTag("parent.context", actorActivityContext.Actor.ParentContextID ?? string.Empty);
 
                     // Stop the activity to send the data to the collector
                     actorActivityContext.Activity.Stop();
@@ -101,6 +102,7 @@ namespace Nanolite_agent.SystemActivity
         /// <remarks>This method ensures that the actor's activity context is up-to-date in the internal
         /// map. If the actor does not exist, it creates a new activity context and adds it to the map.</remarks>
         /// <param name="processActivity">The activity associated with the current process. Cannot be null.</param>
+        /// <param name="processContext">The context of the current process. Cannot be null.</param>
         /// <param name="artifect">The artifect representing the actor's context. Cannot be null.</param>
         /// <param name="type">The type of the actor. Must not be <see cref="ActorType.Undefined"/>.</param>
         /// <returns>An <see cref="ActorActivityContext"/> representing the actor's activity context. If the actor already
@@ -109,10 +111,11 @@ namespace Nanolite_agent.SystemActivity
         /// <exception cref="ArgumentException">Thrown if <paramref name="type"/> is <see cref="ActorType.Undefined"/> or does not match the expected
         /// activity type.</exception>
         /// <exception cref="NanoException.SystemActivityException">Thrown if a new activity cannot be created for the actor.</exception>
-        public ActorActivityContext UpsertActor(Activity processActivity, Artifact artifect, ActorType type)
+        public ActorActivityContext UpsertActor(Activity processActivity, ProcessContext processContext, Artifact artifect, ActorType type)
         {
             // null checfor artifect and type
             ArgumentNullException.ThrowIfNull(processActivity);
+            ArgumentNullException.ThrowIfNull(processContext);
             ArgumentNullException.ThrowIfNull(artifect);
             if (type == ActorType.UNDEFINED)
             {
@@ -135,7 +138,7 @@ namespace Nanolite_agent.SystemActivity
 
             // create ActorContext
             ActorActivityContext actorActivityContext = null;
-            ActorContext newActor = new ActorContext(artifect, type);
+            ActorContext newActor = new ActorContext(artifect, type, processContext.ArtifactContext);
 
             // Create ObjectActorContext if it does not exist
             if (this.actorMap.TryGetValue(newActor.ContextID, out ActorActivityContext value))

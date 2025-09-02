@@ -76,8 +76,17 @@ namespace Nanolite_agent.SystemActivity.Context
             this.Activity.Start();
 
             // create a new Artifact for the process
-            Artifact procArtifact = new Artifact(ArtifactType.PROCESS, this.Activity.SpanId.ToString());
-            this.Process = new ProcessContext(procArtifact);
+            //Artifact procArtifact = new Artifact(ArtifactType.PROCESS, this.Activity.SpanId.ToString());
+            if (parentProcessContext == null)
+            {
+                Artifact procArtifact = new Artifact(ArtifactType.PROCESS, image);
+                this.Process = new ProcessContext(procArtifact);
+            }
+            else
+            {
+                Artifact procArtifact = new Artifact(ArtifactType.PROCESS, image);
+                this.Process = new ProcessContext(procArtifact, parentProcessContext.Process.ArtifactContext);
+            }
 
             // set real name of activity
             this.Activity.DisplayName = this.ContextID;
@@ -157,10 +166,10 @@ namespace Nanolite_agent.SystemActivity.Context
             switch (actorActivityType)
             {
                 case ActorActivityType.READ_RECV:
-                    actorActivityContext = this.rrActors.UpsertActor(this.Activity, obj, type);
+                    actorActivityContext = this.rrActors.UpsertActor(this.Activity, this.Process, obj, type);
                     break;
                 case ActorActivityType.WRITE_SEND:
-                    actorActivityContext = this.wsActors.UpsertActor(this.Activity, obj, type);
+                    actorActivityContext = this.wsActors.UpsertActor(this.Activity, this.Process, obj, type);
                     break;
                 default:
                     throw new NanoException.SystemActivityException($"Unsupported actor activity type: {actorActivityType}");
@@ -186,6 +195,7 @@ namespace Nanolite_agent.SystemActivity.Context
             {
                 // set tag of log count
                 this.Activity.SetTag("log.count", this.Process.LogCount);
+                this.Activity.SetTag("parent.context", this.Process.ParentContextID);
                 this.Activity.Stop();
             }
 

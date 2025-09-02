@@ -22,8 +22,9 @@ namespace Nanolite_agent.SystemActivity.Context
         /// the other is used to represent the actor that process is behaviored.
         /// </summary>
         /// <param name="artifectContext">The artifect context to be used by the process. Cannot be <see langword="null"/>.</param>
+        /// <param name="parentContext">The parent artifect context to be used by the process. Can be <see langword="null"/>.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="artifectContext"/> is <see langword="null"/>.</exception>
-        public ProcessContext(Artifact artifectContext)
+        public ProcessContext(Artifact artifectContext, Artifact parentContext = null)
         {
             if (artifectContext == null)
             {
@@ -33,6 +34,9 @@ namespace Nanolite_agent.SystemActivity.Context
             // set artifect object
             this.ArtifactContext = artifectContext;
 
+            // set parent artifect objec
+            this.ParentContext = parentContext;
+
             // Initialize logCount to 0
             this.LogCount = 0;
         }
@@ -41,6 +45,11 @@ namespace Nanolite_agent.SystemActivity.Context
         /// Gets the artifact context associated with this process.
         /// </summary>
         public Artifact ArtifactContext { get; private set; }
+
+        /// <summary>
+        /// Gets the parent artifact context associated with this process.
+        /// </summary>
+        public Artifact ParentContext { get; private set; }
 
         /// <summary>
         /// Gets the current log count for this process context.
@@ -66,7 +75,25 @@ namespace Nanolite_agent.SystemActivity.Context
                 // ProcessContext uses "LAUNCH" as the type.
                 // Because There are only Process type and Actor type in this context system.
                 // And ProcessContext is used to represent the process that is launched.
-                return $"{this.ArtifactContext.ArtifectID}@LAUNCH";
+                return ISystemContext.GenerateProcessContextID(this.ArtifactContext);
+            }
+        }
+
+        /// <summary>
+        /// Gets the context identifier for the parent artifact, or <see langword="null""/> if no parent exists.
+        /// </summary>
+        public string ParentContextID
+        {
+            get
+            {
+                if (this.ParentContext == null)
+                {
+                    return null;
+                }
+
+                // Return the parent context ID in the format "{ArtifectID}@TYPE"
+                // ProcessContext uses "LAUNCH" as the type.
+                return ISystemContext.GenerateProcessContextID(this.ParentContext);
             }
         }
 
