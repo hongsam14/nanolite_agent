@@ -314,6 +314,27 @@ namespace Nanolite_agent.SystemActivity
                 // create a new Artifact for the sysmon code
                 Artifact actArtifact = new Artifact(sysmonCode.ToArtifactType(), target);
 
+                // drop if specific artifact is existing in the process activity context
+                // this is to prevent duplicate logging for the same artifact
+                // for example, if a registry query event is logged, drop the event if the same registry key is queried again
+                // that is because some events are logged too many times and there are so many duplicate events
+                switch (actorType)
+                {
+                    case ActorType.REG_QUERY:
+                    case ActorType.ACCESS:
+                        // check artifact is existing in the process activity context
+                        if (existActContext.IsArtifactExists(actArtifact, actorType))
+                        {
+                            // drop the event
+                            return;
+                        }
+
+                        break;
+
+                    default:
+                        break;
+                }
+
                 // get existing process activity context
                 (activity, sysContext) = existActContext.UpsertActivity(actArtifact, actorType);
 

@@ -140,6 +140,7 @@ namespace Nanolite_agent.EventSession
         private void ThreadStart(ThreadTraceData eventData)
         {
             JObject syslog;
+            string imageName;
 
             // null check for eventData
             ArgumentNullException.ThrowIfNull(eventData);
@@ -150,6 +151,16 @@ namespace Nanolite_agent.EventSession
                 return;
             }
 
+            try
+            {
+                imageName = Process.GetProcessById(eventData.ProcessID).MainModule.FileName;
+            }
+            catch (Exception ex)
+            {
+                // log the exception
+                imageName = "unknown"; // fallback to unknown if unable to retrieve
+            }
+
             syslog = this.etwKernelTracepoint.GetKernelThreadStartLog(eventData);
             if (syslog == null)
             {
@@ -157,8 +168,8 @@ namespace Nanolite_agent.EventSession
                 return;
             }
 
-            // get image name with process id.
-            string imageName = syslog["ImageFileName"]?.ToString() ?? "unknown";
+            // add image name to syslog metadata
+            syslog["Metadata"]["ImageFileName"] = imageName;
 
             try
             {

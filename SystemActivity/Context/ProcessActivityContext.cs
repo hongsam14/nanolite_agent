@@ -204,6 +204,44 @@ namespace Nanolite_agent.SystemActivity.Context
             this.Process = null;
         }
 
+        /// <summary>
+        /// Determines whether the specified artifact exists for the given actor type.
+        /// </summary>
+        /// <remarks>This method checks the existence of an artifact based on the actor activity type
+        /// derived from the specified actor type. If the actor type does not correspond to a valid actor activity type,
+        /// the method returns <see langword="false"/>.</remarks>
+        /// <param name="obj">The artifact to check for existence. Cannot be <see langword="null"/>.</param>
+        /// <param name="type">The type of actor associated with the artifact.</param>
+        /// <returns><see langword="true"/> if the artifact exists for the specified actor type; otherwise, <see
+        /// langword="false"/>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="obj"/> is <see langword="null"/>.</exception>
+        /// <exception cref="NanoException.SystemActivityException">Thrown if the actor activity type derived from <paramref name="type"/> is unsupported.</exception>
+        public bool IsArtifactExists(Artifact obj, ActorType type)
+        {
+            ActorActivityType actorActivityType;
+            if (obj == null)
+            {
+                throw new ArgumentNullException(nameof(obj), DebugMessages.SystemActivityNullException);
+            }
 
+            // check type is actor type
+            actorActivityType = type.GetActorActivityTypeFromActorType();
+            if (actorActivityType == ActorActivityType.NOT_ACTOR)
+            {
+                // This case means that the type is not actor type.
+                // It's likely a process or thread activity.
+                // In this case, we will not create a new activity for the actor.
+                // just return false.
+                return false;
+            }
+
+            // Determine the actor activity context based on the actor activity type
+            return actorActivityType switch
+            {
+                ActorActivityType.READ_RECV => this.rrActors.IsArtifactExists(obj, type),
+                ActorActivityType.WRITE_SEND => this.wsActors.IsArtifactExists(obj, type),
+                _ => throw new NanoException.SystemActivityException($"Unsupported actor activity type: {actorActivityType}"),
+            };
+        }
     }
 }

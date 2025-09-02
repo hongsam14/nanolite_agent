@@ -108,21 +108,7 @@ namespace Nanolite_agent.Helper
                     metadataObj = KernelEventDecoder.DecodeKernelMetadata<KernelProcessStopMetadata>(origin);
                     break;
                 case SysEventCode.ThreadStart:
-                    string imageName;
-
-                    // get image name with process id.
-                    try
-                    {
-                        imageName = Process.GetProcessById(origin.ProcessID).MainModule.FileName;
-                    }
-                    catch (Exception ex)
-                    {
-                        // log the exception
-                        imageName = "unknown"; // fallback to unknown if unable to retrieve
-                    }
-
                     metadataObj = KernelEventDecoder.DecodeKernelMetadata<KernelThreadStartMetadata>(origin);
-                    metadataObj.Add("ImageFileName", imageName);
                     break;
                 case SysEventCode.RegistryQuery:
                     // Use specific method for registry query metadata.

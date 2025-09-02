@@ -163,5 +163,22 @@ namespace Nanolite_agent.SystemActivity
 
             return actorActivityContext;
         }
+
+        /// <summary>
+        /// Determines whether the specified artifact exists for the given actor type.
+        /// </summary>
+        /// <param name="artifact">The artifact to check for existence.</param>
+        /// <param name="type">The type of actor associated with the artifact.</param>
+        /// <returns><see langword="true"/> if the artifact exists for the specified actor type; otherwise, <see
+        /// langword="false"/>.</returns>
+        public bool IsArtifactExists(Artifact artifact, ActorType type)
+        {
+            if (this.actorMap == null)
+            {
+                return false;
+            }
+
+            return this.actorMap.ContainsKey(ISystemContext.GenerateActorContextID(artifact, type));
+        }
     }
 }
