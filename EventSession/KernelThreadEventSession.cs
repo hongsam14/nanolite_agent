@@ -158,7 +158,7 @@ namespace Nanolite_agent.EventSession
             }
 
             // get image name with process id.
-            string imageName = syslog["ImageName"]?.ToString() ?? "unknown";
+            string imageName = syslog["ImageFileName"]?.ToString() ?? "unknown";
 
             try
             {
