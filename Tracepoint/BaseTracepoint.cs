@@ -164,7 +164,7 @@ namespace Nanolite_agent.Tracepoint
         {
             if (traceData == null)
             {
-                throw new ArgumentNullException(paramName: "traceDatl");
+                throw new ArgumentNullException(paramName: "traceData");
             }
 
             TraceEvent realData = (TraceEvent)traceData;
