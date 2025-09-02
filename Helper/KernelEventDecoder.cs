@@ -90,16 +90,14 @@ namespace Nanolite_agent.Helper
         {
             JObject metadataObj, eventObj;
 
-            eventObj = new JObject();
-
-            // add common header
-            eventObj.Add("EventID", (int)eventCode);
-
-            eventObj.Add("EventName", value: Helper.SysEventCodeExtension.ToFriendlyString(eventCode));
-
-            eventObj.Add("Source", "kernel");
-
-            eventObj.Add("Timestamp", origin.TimeStamp);
+            eventObj = new JObject
+            {
+                // add common header
+                { "EventID", (int)eventCode },
+                { "EventName", Helper.SysEventCodeExtension.ToFriendlyString(eventCode)},
+                { "Source", "kernel" },
+                { "Timestamp", origin.TimeStamp },
+            };
 
             switch (eventCode)
             {
