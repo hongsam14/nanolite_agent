@@ -158,7 +158,14 @@ namespace Nanolite_agent.EventSession
             catch (Exception ex)
             {
                 // log the exception
-                imageName = "unknown"; // fallback to unknown if unable to retrieve
+                if (eventData.ProcessID == 4)
+                {
+                    imageName = "Kernel"; // special case for System process
+                }
+                else
+                {
+                    imageName = "unknown"; // fallback to unknown if unable to retrieve
+                }
             }
 
             syslog = this.etwKernelTracepoint.GetKernelThreadStartLog(eventData);
