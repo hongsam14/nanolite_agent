@@ -188,6 +188,12 @@ namespace Nanolite_agent.SystemActivity
                 // get existing process activity context
                 (activity, sysContext) = existActContext.UpsertActivity(existActContext.Process.ArtifactContext, ActorType.NOT_ACTOR);
 
+                if (activity == null || sysContext == null)
+                {
+                    Interlocked.Add(ref this.busy, -1);
+                    return;
+                }
+
                 // send log information to otel collector
                 Activity.Current = activity;
 
@@ -313,6 +319,12 @@ namespace Nanolite_agent.SystemActivity
 
                 // get existing process activity context
                 (activity, sysContext) = existActContext.UpsertActivity(actArtifact, actorType);
+
+                if (activity == null || sysContext == null)
+                {
+                    Interlocked.Add(ref this.busy, -1);
+                    return;
+                }
 
                 // send log information to otel collector
                 Activity.Current = activity;
