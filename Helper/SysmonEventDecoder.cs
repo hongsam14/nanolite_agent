@@ -211,7 +211,7 @@ namespace Nanolite_agent.Helper
                     return null;
             }
 
-            eventObj.Add("Metadata", metadataObj);
+            eventObj["Metadata"] = metadataObj;
             return eventObj;
         }
 
