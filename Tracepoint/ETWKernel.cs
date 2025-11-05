@@ -8,6 +8,7 @@ namespace Nanolite_agent.Tracepoint
     using Microsoft.Diagnostics.Tracing;
     using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
     using Nanolite_agent.Helper;
+    using Nanolite_agent.NanoException;
     using nanolite_agent.Properties;
     using Newtonsoft.Json.Linq;
 
@@ -62,6 +63,57 @@ namespace Nanolite_agent.Tracepoint
 
             // run post filter function
             if (!this.PostFilterFunc(log))
+            {
+                return null;
+            }
+
+            return log;
+        }
+
+
+        /// <summary>
+        /// Processes a kernel thread start event and returns a structured log representation.
+        /// </summary>
+        /// <remarks>
+        /// This method applies pre- and post-filtering functions to determine if the event should be processed.
+        /// If the event passes both filters, it is decoded into a JSON object.
+        /// </remarks>
+        /// <param name="data">The <see cref="ThreadTraceData"/> containing the event data to be processed. Cannot be <see langword="null"/>.</param>
+        /// <returns>
+        /// A <see cref="JObject"/> representing the decoded kernel thread start event, or <see langword="null"/> if the event is filtered out.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="data"/> is <see langword="null"/>.</exception>
+        /// <exception cref="ArgumentException">Thrown if the event data cannot be decoded into a valid log entry.</exception>
+        public JObject GetKernelThreadStartLog(ThreadTraceData data)
+        {
+            JObject log;
+
+            // check data is not null
+            if (data == null)
+            {
+                throw new ArgumentNullException(nameof(data));
+            }
+
+            // run pre filter function
+            if (!this.PreFilterFunc(data))
+            {
+                return null;
+            }
+
+            log = KernelEventDecoder.DecodeKernelThreadStartEvent(data);
+            if (log == null)
+            {
+                throw new ArgumentException(DebugMessages.TracepointAcceptErrMessage);
+            }
+
+            // run post filter function
+            if (!this.PostFilterFunc(log))
+            {
+                return null;
+            }
+
+            // run additional filter to exclude logs related to the agent itself
+            if (!this.FilterMyThread(log))
             {
                 return null;
             }
@@ -152,6 +204,17 @@ namespace Nanolite_agent.Tracepoint
             }
 
             return log;
+        }
+
+        private bool FilterMyThread(JObject logData)
+        {
+            JObject metadata = logData["Metadata"] as JObject;
+            if (metadata.ContainsKey("ParentProcessID") && metadata["ParentProcessID"].ToString() == SelfInfo.PID.ToString())
+            {
+                return false;
+            }
+
+            return true;
         }
     }
 }

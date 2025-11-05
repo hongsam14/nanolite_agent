@@ -164,7 +164,7 @@ namespace Nanolite_agent.Tracepoint
         {
             if (traceData == null)
             {
-                throw new ArgumentNullException(paramName: "traceDatl");
+                throw new ArgumentNullException(paramName: "traceData");
             }
 
             TraceEvent realData = (TraceEvent)traceData;
@@ -221,12 +221,13 @@ namespace Nanolite_agent.Tracepoint
 
         private bool FilterByMySelf(JObject logData)
         {
-            if (logData.ContainsKey("Image") && this.MyselfRegex.IsMatch(logData["Image"]?.ToString())) // Related with agent
+            JObject metadata = logData["Metadata"] as JObject;
+            if (metadata.ContainsKey("Image") && this.MyselfRegex.IsMatch(metadata["Image"]?.ToString())) // Related with agent
             {
                 return false;
             }
 
-            if (logData.ContainsKey("SourceImage") && this.MyselfRegex.IsMatch(logData["SourceImage"]?.ToString())) // Related with agent
+            if (metadata.ContainsKey("SourceImage") && this.MyselfRegex.IsMatch(metadata["SourceImage"]?.ToString())) // Related with agent
             {
                 return false;
             }

@@ -5,6 +5,7 @@
 namespace Nanolite_agent.Beacon
 {
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics;
     using System.Net.Http;
     using Microsoft.Extensions.DependencyInjection;
@@ -83,7 +84,10 @@ namespace Nanolite_agent.Beacon
                     throw new NanoException.BeaconException("Beacon health check failed.", ex);
                 }
 
-                this.resource = ResourceBuilder.CreateDefault().AddService(serviceName);
+                // set resource attributes
+                this.resource = ResourceBuilder.CreateDefault()
+                    .AddService(serviceName)
+                    .AddAttributes(new[] { new KeyValuePair<string, object>("group", config.Exporter) });
 
                 OtlpExporterOptions option = new OtlpExporterOptions
                 {

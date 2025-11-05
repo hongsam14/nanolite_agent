@@ -7,12 +7,15 @@ namespace Nanolite_agent.SystemActivity
     using System;
     using System.Collections.Concurrent;
     using System.Diagnostics;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
     using Nanolite_agent.Beacon;
     using Nanolite_agent.Helper;
     using nanolite_agent.Properties;
     using Nanolite_agent.SystemActivity.Context;
     using Newtonsoft.Json.Linq;
+    using System.Collections.Generic;
 
     /// <summary>
     /// Record the lifecycle and logging of system process activities, including launching, terminating, and processing
@@ -29,6 +32,10 @@ namespace Nanolite_agent.SystemActivity
 
         private ConcurrentDictionary<long, ProcessActivityContext> processMap;
 
+        private int busy;
+
+        private bool isRunning;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="SystemActivityRecorder"/> class,  which processes and tracks
         /// system activities based on the provided activity beacon.
@@ -40,6 +47,11 @@ namespace Nanolite_agent.SystemActivity
             ArgumentNullException.ThrowIfNull(beacon);
             ArgumentNullException.ThrowIfNull(beacon.Logger);
             ArgumentNullException.ThrowIfNull(beacon.SystemActivitySource);
+
+            this.busy = 0;
+
+            // status variables
+            this.isRunning = true;
 
             this.source = beacon.SystemActivitySource;
             this.logger = beacon.Logger;
@@ -85,6 +97,15 @@ namespace Nanolite_agent.SystemActivity
             // check sysEvent or eventDecoderFunc is null
             ArgumentNullException.ThrowIfNull(syslog);
 
+            // check if recorder is running
+            if (!this.isRunning)
+            {
+                return;
+            }
+
+            // Interlocked busy variable and add 1
+            Interlocked.Add(ref this.busy, 1);
+
             // check if process is already in the map
             if (this.processMap.TryGetValue(processId, out ProcessActivityContext existActContext))
             {
@@ -120,6 +141,9 @@ namespace Nanolite_agent.SystemActivity
 
             // increment log count
             sysContext.IncrementLogCount();
+
+            // Interlocked busy variable and minus 1
+            Interlocked.Add(ref this.busy, -1);
         }
 
         /// <summary>
@@ -149,11 +173,26 @@ namespace Nanolite_agent.SystemActivity
 
             ArgumentNullException.ThrowIfNull(syslog);
 
+            // check if recorder is running
+            if (!this.isRunning)
+            {
+                return;
+            }
+
+            // interlocked busy variable and add 1
+            Interlocked.Add(ref this.busy, 1);
+
             // check if process is in the map
             if (this.processMap.TryGetValue(processId, out ProcessActivityContext existActContext))
             {
                 // get existing process activity context
                 (activity, sysContext) = existActContext.UpsertActivity(existActContext.Process.ArtifactContext, ActorType.NOT_ACTOR);
+
+                if (activity == null || sysContext == null)
+                {
+                    Interlocked.Add(ref this.busy, -1);
+                    return;
+                }
 
                 // send log information to otel collector
                 Activity.Current = activity;
@@ -172,6 +211,9 @@ namespace Nanolite_agent.SystemActivity
                 // remove from processMap
                 this.processMap.TryRemove(processId, out _);
             }
+
+            // interlocked busy variable and minus 1
+            Interlocked.Add(ref this.busy, -1);
         }
 
         /// <summary>
@@ -222,10 +264,18 @@ namespace Nanolite_agent.SystemActivity
             // check sysLog is null
             ArgumentNullException.ThrowIfNull(syslog);
 
+            // check if recorder is running
+            if (!this.isRunning)
+            {
+                return;
+            }
+
+            Interlocked.Add(ref this.busy, 1);
+
             actorType = sysmonCode.ToActorType();
 
             // check if sysmonCode is not tampering
-            if (actorType != ActorType.REMOTE_THREAD)
+            if (actorType != ActorType.REMOTE_THREAD && actorType != ActorType.ACCESS)
             {
                 throw new NanoException.SystemActivityException($"Unsupported sysmon code: {sysmonCode}");
             }
@@ -247,8 +297,34 @@ namespace Nanolite_agent.SystemActivity
                     actArtifact = new Artifact(sysmonCode.ToArtifactType(), target);
                 }
 
+                // drop if specific artifact is existing in the process activity context
+                // this is to prevent duplicate logging for the same artifact
+                // for example, if a registry query event is logged, drop the event if the same registry key is queried again
+                // that is because some events are logged too many times and there are so many duplicate events
+                switch (actorType)
+                {
+                    case ActorType.REMOTE_THREAD:
+                        // check artifact is existing in the process activity context
+                        if (existActContext.IsArtifactExists(actArtifact, actorType))
+                        {
+                            // drop the event
+                            return;
+                        }
+
+                        break;
+
+                    default:
+                        break;
+                }
+
                 // get existing process activity context
                 (activity, sysContext) = existActContext.UpsertActivity(actArtifact, actorType);
+
+                if (activity == null || sysContext == null)
+                {
+                    Interlocked.Add(ref this.busy, -1);
+                    return;
+                }
 
                 // send log information to otel collector
                 Activity.Current = activity;
@@ -258,6 +334,8 @@ namespace Nanolite_agent.SystemActivity
                 // increment log count
                 sysContext.IncrementLogCount();
             }
+
+            Interlocked.Add(ref this.busy, -1);
         }
 
         /// <summary>
@@ -303,10 +381,18 @@ namespace Nanolite_agent.SystemActivity
             ArgumentNullException.ThrowIfNull(syslog);
 
             actorType = sysmonCode.ToActorType();
-            if (actorType == ActorType.Undefined)
+            if (actorType == ActorType.UNDEFINED)
             {
                 throw new NanoException.SystemActivityException($"Unsupported sysmon code: {sysmonCode}");
             }
+
+            // check if recorder is running
+            if (!this.isRunning)
+            {
+                return;
+            }
+
+            Interlocked.Add(ref this.busy, 1);
 
             // check if sysEvent is from the process which we are tracking with processMap
             if (this.processMap.TryGetValue(processId, out ProcessActivityContext existActContext))
@@ -314,8 +400,35 @@ namespace Nanolite_agent.SystemActivity
                 // create a new Artifact for the sysmon code
                 Artifact actArtifact = new Artifact(sysmonCode.ToArtifactType(), target);
 
+                // drop if specific artifact is existing in the process activity context
+                // this is to prevent duplicate logging for the same artifact
+                // for example, if a registry query event is logged, drop the event if the same registry key is queried again
+                // that is because some events are logged too many times and there are so many duplicate events
+                switch (actorType)
+                {
+                    case ActorType.REG_QUERY:
+                        // check artifact is existing in the process activity context
+                        if (existActContext.IsArtifactExists(actArtifact, actorType))
+                        {
+                            Interlocked.Add(ref this.busy, -1);
+                            // drop the event
+                            return;
+                        }
+
+                        break;
+
+                    default:
+                        break;
+                }
+
                 // get existing process activity context
                 (activity, sysContext) = existActContext.UpsertActivity(actArtifact, actorType);
+
+                if (activity == null || sysContext == null)
+                {
+                    Interlocked.Add(ref this.busy, -1);
+                    return;
+                }
 
                 // send log information to otel collector
                 Activity.Current = activity;
@@ -325,6 +438,8 @@ namespace Nanolite_agent.SystemActivity
                 // increment log count
                 sysContext.IncrementLogCount();
             }
+
+            Interlocked.Add(ref this.busy, -1);
         }
 
         /// <summary>
@@ -353,6 +468,9 @@ namespace Nanolite_agent.SystemActivity
         /// null, allowing it to be collected by the garbage collector.</remarks>
         public void Flush()
         {
+            this.isRunning = false;
+            //Task.Run(() =>
+            //{
             // check if processMap is null
             if (this.processMap == null)
             {
@@ -368,6 +486,8 @@ namespace Nanolite_agent.SystemActivity
             // clear the processMap and set null to release to garbage collector.
             this.processMap.Clear();
             this.processMap = null;
+            Console.WriteLine("All activities flushed.");
+            //}).Wait();
         }
     }
 }

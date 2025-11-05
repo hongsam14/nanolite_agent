@@ -196,14 +196,67 @@ namespace Nanolite_agent.EventSession
                 throw new SystemActivityException($"ProcessId not found in event data in {nameof(SysmonEventSession)}, target: {eventData}");
             }
 
+            code = SysmonEventDecoder.GetEventCodeFromData(eventData);
+
+            // determine the event is process create event or not
+            if (code == SysEventCode.ProcessCreation)
+            {
+                long parentId;
+
+                // get elements from proc create eventData
+                target = eventData.PayloadByName("Image")?.ToString() ?? string.Empty;
+                if (eventData.PayloadByName("ParentProcessId") is long parentPid)
+                {
+                    parentId = parentPid;
+                }
+                else if (eventData.PayloadByName("ParentProcessId") is int parentPidInt)
+                {
+                    parentId = parentPidInt;
+                }
+                else
+                {
+                    // If ParentProcessId is not found, do nothing
+                    return;
+                }
+
+                // decode the eventData to JObject
+                syslog = this.sysmonTracepoint.GetSysmonLog(eventData);
+                if (syslog == null)
+                {
+                    // If syslog is null, it means the log is filtered. so do nothing
+                    return;
+                }
+
+                try
+                {
+                    this.sysActRecorder.StartRecordProcessObject(
+                        processId,
+                        parentId,
+                        target,
+                        syslog);
+                }
+                catch (SystemActivityException ex)
+                {
+                    // log the exception
+                    Console.WriteLine($"Error in processing process creation: {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    // log the exception
+                    throw new NanoException.BeaconException(
+                        "Error in processing process creation",
+                        ex);
+                }
+
+                return;
+            }
+
             // check if the eventData is from Tracked Process
             if (!this.sysActRecorder.IsProcessTracked(processId))
             {
                 // If the event is not from a tracked process, do nothing
                 return;
             }
-
-            code = SysmonEventDecoder.GetEventCodeFromData(eventData);
 
             switch (code)
             {

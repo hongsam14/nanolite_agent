@@ -5,6 +5,7 @@
 namespace Nanolite_agent.Helper
 {
     using System;
+    using System.Diagnostics;
     using Microsoft.Diagnostics.Tracing;
     using Nanolite_agent.EventModel;
     using Newtonsoft.Json.Linq;
@@ -52,6 +53,24 @@ namespace Nanolite_agent.Helper
         }
 
         /// <summary>
+        /// Decodes a kernel thread start event from the specified trace event.
+        /// </summary>
+        /// <param name="origin">The trace event to decode, representing a thread start event.</param>
+        /// <returns>A <see cref="JObject"/> representing the decoded thread start event.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="origin"/> is <see langword="null"/>.</exception>
+        public static JObject DecodeKernelThreadStartEvent(TraceEvent origin)
+        {
+            JObject result;
+
+            if (origin == null)
+            {
+                throw new ArgumentNullException(nameof(origin));
+            }
+
+            return EventFromCode(SysEventCode.ThreadStart, origin);
+        }
+
+        /// <summary>
         /// Decodes a kernel registry query event from the provided trace event.
         /// </summary>
         /// <param name="origin">The trace event containing the kernel registry query data. Cannot be <see langword="null"/>.</param>
@@ -71,16 +90,14 @@ namespace Nanolite_agent.Helper
         {
             JObject metadataObj, eventObj;
 
-            eventObj = new JObject();
-
-            // add common header
-            eventObj.Add("EventID", (int)eventCode);
-
-            eventObj.Add("EventName", value: Helper.SysEventCodeExtension.ToFriendlyString(eventCode));
-
-            eventObj.Add("Source", "kernel");
-
-            eventObj.Add("Timestamp", origin.TimeStamp);
+            eventObj = new JObject
+            {
+                // add common header
+                { "EventID", (int)eventCode },
+                { "EventName", Helper.SysEventCodeExtension.ToFriendlyString(eventCode)},
+                { "Source", "kernel" },
+                { "Timestamp", origin.TimeStamp },
+            };
 
             switch (eventCode)
             {
@@ -89,6 +106,9 @@ namespace Nanolite_agent.Helper
                     break;
                 case SysEventCode.ProcessTerminated:
                     metadataObj = KernelEventDecoder.DecodeKernelMetadata<KernelProcessStopMetadata>(origin);
+                    break;
+                case SysEventCode.ThreadStart:
+                    metadataObj = KernelEventDecoder.DecodeKernelMetadata<KernelThreadStartMetadata>(origin);
                     break;
                 case SysEventCode.RegistryQuery:
                     // Use specific method for registry query metadata.
@@ -100,7 +120,7 @@ namespace Nanolite_agent.Helper
                     return null;
             }
 
-            eventObj.Add("Metadata", metadataObj);
+            eventObj["Metadata"] = metadataObj;
             return eventObj;
         }
 

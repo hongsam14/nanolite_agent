@@ -6,6 +6,8 @@ namespace Nanolite_agent.SystemActivity.Context
 {
     using System;
     using System.Diagnostics;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Nanolite_agent.Helper;
     using nanolite_agent.Properties;
 
@@ -21,6 +23,10 @@ namespace Nanolite_agent.SystemActivity.Context
         private readonly ActorActivityRecorder rrActors;
 
         private readonly ActorActivityRecorder wsActors;
+
+        private int busy;
+
+        private bool isRunning;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProcessActivityContext"/> class, representing the context for a
@@ -38,6 +44,10 @@ namespace Nanolite_agent.SystemActivity.Context
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="source"/> is <see langword="null"/>.</exception>
         public ProcessActivityContext(string image, in ActivitySource source, in ProcessActivityContext parentProcessContext)
         {
+            this.busy = 0;
+
+            this.isRunning = true;
+
             if (source == null)
             {
                 throw new ArgumentNullException(nameof(source), DebugMessages.SystemActivityNullException);
@@ -62,6 +72,11 @@ namespace Nanolite_agent.SystemActivity.Context
                     parentProcessContext.Activity.Context);
             }
 
+            // set the activity type to NOT_ACTOR.
+            // This means that this context is not specifically an actor context.
+            // because actor context is used to represent the actor that process is behaviored and influence on Artifacts.
+            this.ActivityType = ActorActivityType.NOT_ACTOR;
+
             // start activity to generate a span
             // Important: this will generate a span for the process activity
             // This sequence is important because process object activity's name is set with the span ID
@@ -70,11 +85,21 @@ namespace Nanolite_agent.SystemActivity.Context
             this.Activity.Start();
 
             // create a new Artifact for the process
-            Artifact procArtifact = new Artifact(ArtifactType.Process, this.Activity.SpanId.ToString());
-            this.Process = new ProcessContext(procArtifact);
+            string artifactName = image == "unknown" ? $"{this.Activity.SpanId.ToString()}" : image;
+
+            if (parentProcessContext == null)
+            {
+                Artifact procArtifact = new Artifact(ArtifactType.PROCESS, artifactName);
+                this.Process = new ProcessContext(procArtifact);
+            }
+            else
+            {
+                Artifact procArtifact = new Artifact(ArtifactType.PROCESS, artifactName);
+                this.Process = new ProcessContext(procArtifact, parentProcessContext.Process.ArtifactContext);
+            }
 
             // set real name of activity
-            this.Activity.DisplayName = this.Process.ContextID;
+            this.Activity.DisplayName = this.ContextID;
 
             // set the otel tags for the activity
             this.Activity.SetTag("process.name", image);
@@ -93,6 +118,23 @@ namespace Nanolite_agent.SystemActivity.Context
         /// Gets the activity associated with this process context.
         /// </summary>
         public ProcessContext Process { get; private set; }
+
+        /// <summary>
+        /// Gets the type of activity performed by the actor in this process context.
+        /// The value is fixed to the 'NOT_ACTOR' type, indicating that this context is not specifically.
+        /// </summary>
+        public ActorActivityType ActivityType { get; private set; }
+
+        /// <summary>
+        /// Gets the unique context ID for this process activity.
+        /// </summary>
+        public string ContextID
+        {
+            get
+            {
+                return $"{this.Process.ContextID}@{this.ActivityType}";
+            }
+        }
 
         /// <summary>
         /// Updates or inserts an activity based on the specified artifact and actor type.
@@ -118,10 +160,21 @@ namespace Nanolite_agent.SystemActivity.Context
                 throw new ArgumentNullException(nameof(obj), DebugMessages.SystemActivityNullException);
             }
 
+            if (!this.isRunning)
+            {
+                return (null, null);
+            }
+
+            // use interlocked to make this method thread-safe
+            Interlocked.Add(ref this.busy, 1);
+
             // check type is actor type
             actorActivityType = type.GetActorActivityTypeFromActorType();
             if (actorActivityType == ActorActivityType.NOT_ACTOR)
             {
+                // return the activity and actor context
+                Interlocked.Add(ref this.busy, -1);
+
                 // This case means that the type is not actor type.
                 // It's likely a process or thread activity.
                 // In this case, we will not create a new activity for the actor.
@@ -134,26 +187,35 @@ namespace Nanolite_agent.SystemActivity.Context
             switch (actorActivityType)
             {
                 case ActorActivityType.READ_RECV:
-                    actorActivityContext = this.rrActors.UpsertActor(this.Activity, obj, type);
+                    actorActivityContext = this.rrActors.UpsertActor(this.Activity, this.Process, obj, type);
                     break;
                 case ActorActivityType.WRITE_SEND:
-                    actorActivityContext = this.wsActors.UpsertActor(this.Activity, obj, type);
+                    actorActivityContext = this.wsActors.UpsertActor(this.Activity, this.Process, obj, type);
                     break;
                 default:
+                    // return the activity and actor context
+                    Interlocked.Add(ref this.busy, -1);
                     throw new NanoException.SystemActivityException($"Unsupported actor activity type: {actorActivityType}");
             }
+
+            // return the activity and actor context
+            Interlocked.Add(ref this.busy, -1);
 
             return (actorActivityContext.Activity, actorActivityContext.Actor);
         }
 
         /// <summary>
-        /// Flushes all actors in the read/receive and write/send contexts, releasing associated resources.
+        /// Ensures that all pending operations are completed and releases resources associated with the current
+        /// context.
         /// </summary>
-        /// <remarks>This method clears the current activity and process context, which may release
-        /// resources and reset the state of the system. It should be called when the current processing cycle is
-        /// complete and resources need to be freed.</remarks>
+        /// <remarks>This method waits until the context is no longer in use before flushing all actors in
+        /// the read/receive  and write/send contexts. It also stops the current activity, if any, and clears the
+        /// associated process  and activity context to release resources. This method is asynchronous and returns a
+        /// task that completes  when the flush operation is finished.</remarks>
         public void Flush()
         {
+            this.isRunning = false;
+
             // Flush all actors in the read/receive and write/send contexts
             this.rrActors.FlushActors();
             this.wsActors.FlushActors();
@@ -163,12 +225,55 @@ namespace Nanolite_agent.SystemActivity.Context
             {
                 // set tag of log count
                 this.Activity.SetTag("log.count", this.Process.LogCount);
+                this.Activity.SetTag("parent.context", this.Process.ParentContextID);
                 this.Activity.Stop();
             }
 
+            Console.WriteLine($"{this.ContextID} is flushed.");
+
             // Clear the activity and process context to release resources
-            this.Activity = null;
-            this.Process = null;
+            //this.Activity = null;
+            //this.Process = null;
+        }
+
+        /// <summary>
+        /// Determines whether the specified artifact exists for the given actor type.
+        /// </summary>
+        /// <remarks>This method checks the existence of an artifact based on the actor activity type
+        /// derived from the specified actor type. If the actor type does not correspond to a valid actor activity type,
+        /// the method returns <see langword="false"/>.</remarks>
+        /// <param name="obj">The artifact to check for existence. Cannot be <see langword="null"/>.</param>
+        /// <param name="type">The type of actor associated with the artifact.</param>
+        /// <returns><see langword="true"/> if the artifact exists for the specified actor type; otherwise, <see
+        /// langword="false"/>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="obj"/> is <see langword="null"/>.</exception>
+        /// <exception cref="NanoException.SystemActivityException">Thrown if the actor activity type derived from <paramref name="type"/> is unsupported.</exception>
+        public bool IsArtifactExists(Artifact obj, ActorType type)
+        {
+            ActorActivityType actorActivityType;
+            if (obj == null)
+            {
+                throw new ArgumentNullException(nameof(obj), DebugMessages.SystemActivityNullException);
+            }
+
+            // check type is actor type
+            actorActivityType = type.GetActorActivityTypeFromActorType();
+            if (actorActivityType == ActorActivityType.NOT_ACTOR)
+            {
+                // This case means that the type is not actor type.
+                // It's likely a process or thread activity.
+                // In this case, we will not create a new activity for the actor.
+                // just return false.
+                return false;
+            }
+
+            // Determine the actor activity context based on the actor activity type
+            return actorActivityType switch
+            {
+                ActorActivityType.READ_RECV => this.rrActors.IsArtifactExists(obj, type),
+                ActorActivityType.WRITE_SEND => this.wsActors.IsArtifactExists(obj, type),
+                _ => throw new NanoException.SystemActivityException($"Unsupported actor activity type: {actorActivityType}"),
+            };
         }
     }
 }

@@ -1,10 +1,11 @@
-﻿// <copyright file="KernelProcessEventSession.cs" company="PlaceholderCompany">
+﻿// <copyright file="KernelThreadEventSession.cs" company="PlaceholderCompany">
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
 namespace Nanolite_agent.EventSession
 {
     using System;
+    using System.Diagnostics;
     using System.Threading.Tasks;
     using Microsoft.Diagnostics.Tracing.Parsers;
     using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
@@ -14,21 +15,37 @@ namespace Nanolite_agent.EventSession
     using Nanolite_agent.Tracepoint;
     using Newtonsoft.Json.Linq;
 
+
     /// <summary>
-    /// Manages a kernel-mode ETW (Event Tracing for Windows) session to monitor process-related events.
+    /// Manages an Event Tracing for Windows (ETW) session for kernel thread events, enabling asynchronous monitoring
+    /// and recording of system process/thread activity. This class sets up a dedicated ETW session to capture kernel
+    /// thread start events, applies filtering and decoding via <see cref="ETWKernel"/>, and records relevant activity
+    /// using <see cref="SystemActivityRecorder"/>. It provides methods to start, stop, and wait for the session,
+    /// ensuring proper resource management and error handling for system activity logging.
     /// </summary>
-    /// <remarks>This class provides functionality to start, stop, and wait for a kernel-mode ETW session. It
-    /// listens for  process creation and termination events and uses a <see cref="SystemActivityRecorder"/> to log these
-    /// events. The session is configured to automatically stop when disposed and uses a buffer size of 1024
-    /// MB.</remarks>
-    public class KernelProcessEventSession : IEventSession
+    /// <remarks>
+    /// <para>
+    /// <b>Usage:</b> Instantiate with a <see cref="SystemActivityRecorder"/> and call <see cref="StartSession"/> to begin
+    /// monitoring. Use <see cref="StopSession"/> to halt the session and <see cref="WaitSession"/> to block until completion.
+    /// </para>
+    /// <para>
+    /// <b>Responsibilities:</b>
+    /// <list type="bullet">
+    /// <item>Initializes and configures a kernel ETW session for thread events.</item>
+    /// <item>Subscribes to kernel thread start events and processes them asynchronously.</item>
+    /// <item>Filters, decodes, and records thread start events, associating them with process activity contexts.</item>
+    /// <item>Handles duplicate event prevention and error propagation for robust monitoring.</item>
+    /// </list>
+    /// </para>
+    /// </remarks>
+    public class KernelThreadEventSession : IEventSession
     {
         /// <summary>
         /// The name of the ETW (Event Tracing for Windows) session.
         /// </summary>
-        /// <remarks>This field holds the default name for the ETW session used in tracing operations. It
-        /// is a constant value and cannot be modified.</remarks>
-        private readonly string sessionName = "kernel_etw_process_session";
+        /// <remarks>This field holds the default name fore the ETW session used in tracing operations.
+        /// It is a constant value and cannot be modified.</remarks>
+        private readonly string sessionName = "kernel_etw_thread_session";
 
         private readonly TraceEventSession traceEventSession;
         private readonly ETWKernel etwKernelTracepoint;
@@ -36,21 +53,21 @@ namespace Nanolite_agent.EventSession
         private Task sessionTask;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="KernelProcessEventSession"/> class,  which manages a kernel
+        /// Initializes a new instance of the <see cref="KernelThreadEventSession"/> class, which manages a kernel
         /// process event session for system activity recording.
         /// </summary>
         /// <remarks>This constructor sets up an ETW (Event Tracing for Windows) session with kernel
-        /// process tracing enabled.  The session is configured to automatically stop when disposed and uses a buffer
-        /// size of 1024 MB.</remarks>
-        /// <param name="sysRecorder">The <see cref="SystemActivityRecorder"/> instance used to record system activity.  This parameter cannot be
-        /// <see langword="null"/>.</param>
-        public KernelProcessEventSession(SystemActivityRecorder sysRecorder)
+        /// thread tracing enabled. The session is configured to automatically stop when disposed and uses a buffer
+        /// size of 1024 MB. It also registers callbacks for thread start and stop events.</remarks>
+        /// <param name="sysRecorder">The <see cref="SystemActivityRecorder"/> instance used to record system activity.
+        /// This parameter cannot be <see langword="null"/>.</param>
+        public KernelThreadEventSession(SystemActivityRecorder sysRecorder)
         {
-            // null check for Beacon
+            // null check for recorder
             ArgumentNullException.ThrowIfNull(sysRecorder);
             this.sysActRecorder = sysRecorder;
 
-            // initialize etw session
+            // initialize ETW session
             this.traceEventSession = new TraceEventSession(this.sessionName)
             {
                 StopOnDispose = true,
@@ -59,7 +76,7 @@ namespace Nanolite_agent.EventSession
 
             this.sessionTask = null;
 
-            // initialize Kernel Process Tracepoint
+            // initialize kernel process tracepoint
             this.etwKernelTracepoint = new Tracepoint.ETWKernel();
 
             // subscribe function to etw session
@@ -77,7 +94,6 @@ namespace Nanolite_agent.EventSession
         {
             this.sessionTask = Task.Run(() =>
             {
-                // blocked until stop is called.
                 this.traceEventSession?.Source.Process();
             });
         }
@@ -103,7 +119,7 @@ namespace Nanolite_agent.EventSession
         {
             if (this.sessionTask == null)
             {
-                throw new InvalidOperationException("sessonTask is not running. Call StartSession before calling WaitSession");
+                throw new InvalidOperationException("Session task is not running. Call StartSession before calling WaitSession.");
             }
 
             this.sessionTask.Wait();
@@ -111,18 +127,20 @@ namespace Nanolite_agent.EventSession
 
         private void SubscribeProvider()
         {
-            this.traceEventSession.EnableKernelProvider(KernelTraceEventParser.Keywords.Process);
+            // subscribe to kernel thread events
+            this.traceEventSession.EnableKernelProvider(KernelTraceEventParser.Keywords.Thread);
         }
 
         private void RegisterCallback()
         {
-            this.traceEventSession.Source.Kernel.ProcessStart += this.ProcessCreate;
-            this.traceEventSession.Source.Kernel.ProcessStop += this.ProcessTerminate;
+            // register callback for thread events
+            this.traceEventSession.Source.Kernel.ThreadStart += this.ThreadStart;
         }
 
-        private void ProcessCreate(ProcessTraceData eventData)
+        private void ThreadStart(ThreadTraceData eventData)
         {
             JObject syslog;
+            string imageName;
 
             // null check for eventData
             ArgumentNullException.ThrowIfNull(eventData);
@@ -133,19 +151,39 @@ namespace Nanolite_agent.EventSession
                 return;
             }
 
-            syslog = this.etwKernelTracepoint.GetKernelProcessCreateLog(eventData);
+            try
+            {
+                imageName = Process.GetProcessById(eventData.ProcessID).MainModule.FileName;
+            }
+            catch (Exception ex)
+            {
+                // log the exception
+                if (eventData.ProcessID == 4)
+                {
+                    imageName = "Kernel"; // special case for System process
+                }
+                else
+                {
+                    imageName = "unknown"; // fallback to unknown if unable to retrieve
+                }
+            }
+
+            syslog = this.etwKernelTracepoint.GetKernelThreadStartLog(eventData);
             if (syslog == null)
             {
                 // this case means syslog is filtered out by etwKernelTracepoint
                 return;
             }
 
+            // add image name to syslog metadata
+            syslog["Metadata"]["ImageFileName"] = imageName;
+
             try
             {
                 this.sysActRecorder.StartRecordProcessObject(
                     eventData.ProcessID,
-                    eventData.ParentID,
-                    eventData.ImageFileName,
+                    eventData.ParentProcessID,
+                    imageName,
                     syslog);
             }
             catch (SystemActivityException ex)
@@ -158,46 +196,6 @@ namespace Nanolite_agent.EventSession
                 // log the exception
                 throw new NanoException.BeaconException(
                     "Error in processing process creation",
-                    ex);
-            }
-        }
-
-        private void ProcessTerminate(ProcessTraceData eventData)
-        {
-            JObject syslog;
-
-            // null check for eventData
-            ArgumentNullException.ThrowIfNull(eventData);
-
-            // check the process exists
-            if (!this.sysActRecorder.IsProcessTracked(eventData.ProcessID))
-            {
-                return;
-            }
-
-            syslog = this.etwKernelTracepoint.GetKernelProcessStopLog(eventData);
-            if (syslog == null)
-            {
-                return;
-            }
-
-            try
-            {
-                // stop record process object
-                this.sysActRecorder.StopRecordProcessObject(
-                    eventData.ProcessID,
-                    syslog);
-            }
-            catch (SystemActivityException ex)
-            {
-                // log the exception
-                Console.WriteLine($"Error in processing process termination: {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                // log the exception
-                throw new NanoException.BeaconException(
-                    "Error in processing process termination",
                     ex);
             }
         }

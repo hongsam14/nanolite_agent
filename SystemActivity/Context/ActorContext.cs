@@ -20,21 +20,24 @@ namespace Nanolite_agent.SystemActivity.Context
         /// Initializes a new instance of the <see cref="ActorContext"/> class with the specified artifect context and actor type.
         /// The difference between this and the <see cref="ProcessContext"/> is that this context is used to represent the actor that process is behaving,
         /// </summary>
-        /// <param name="artifectContext">The type of artifect, indicating its name and type. </param>
+        /// <param name="artifactContext">The type of artifect, indicating its name and type. </param>
         /// <param name="type">The type of actor, indicating it's type of actor. </param>
         /// <exception cref="ArgumentNullException">
-        /// Thrown if <paramref name="artifectContext"/> is <see langword="null"/>
+        /// Thrown if <paramref name="artifactContext"/> is <see langword="null"/>
         /// or if <paramref name="type"/> is <see cref="ActorType.Undefined"/>.
         /// </exception>
-        public ActorContext(Artifact artifectContext, ActorType type)
+        public ActorContext(Artifact artifactContext, ActorType type, Artifact parentContext = null)
         {
-            if (artifectContext == null || type == ActorType.Undefined)
+            if (artifactContext == null || type == ActorType.UNDEFINED)
             {
-                throw new ArgumentNullException(nameof(artifectContext), DebugMessages.SystemActivityNullException);
+                throw new ArgumentNullException(nameof(artifactContext), DebugMessages.SystemActivityNullException);
             }
 
             // set artifect object
-            this.ArtifactContext = artifectContext;
+            this.ArtifactContext = artifactContext;
+
+            // set parent artifect object
+            this.ParentContext = parentContext;
 
             // set actor type
             this.Type = type;
@@ -55,6 +58,11 @@ namespace Nanolite_agent.SystemActivity.Context
         public Artifact ArtifactContext { get; private set; }
 
         /// <summary>
+        /// Gets the parent artifect context associated with this actor.
+        /// </summary>
+        public Artifact ParentContext { get; private set; }
+
+        /// <summary>
         /// Gets the current log count for this actor context.
         /// </summary>
         public int LogCount { get; private set; }
@@ -68,13 +76,30 @@ namespace Nanolite_agent.SystemActivity.Context
         {
             get
             {
-                if (this.ArtifactContext == null || this.Type == ActorType.Undefined)
+                if (this.ArtifactContext == null || this.Type == ActorType.UNDEFINED)
                 {
                     return null;
                 }
 
                 // Generate a unique ID for the actor based on its type and artifect object ID
-                return $"{this.ArtifactContext.ArtifectID}@{this.Type}";
+                return ISystemContext.GenerateActorContextID(this.ArtifactContext, this.Type);
+            }
+        }
+
+        /// <summary>
+        /// Gets the unique identifier of the parent context, or <see langword="null"/> if no parent context exists.
+        /// </summary>
+        public string ParentContextID
+        {
+            get
+            {
+                if (this.ParentContext == null)
+                {
+                    return null;
+                }
+
+                // Generate a unique ID for the parent artifect object
+                return ISystemContext.GenerateProcessContextID(this.ParentContext);
             }
         }
 

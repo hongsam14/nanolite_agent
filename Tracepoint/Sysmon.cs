@@ -21,6 +21,7 @@ namespace Nanolite_agent.Tracepoint
         public Sysmon()
             : base("sysmon")
         {
+            //this.PostFilterFunc += this.FilterMyAccess;
         }
 
         /// <summary>
@@ -60,7 +61,23 @@ namespace Nanolite_agent.Tracepoint
                 return null;
             }
 
+            if (!this.FilterMyAccess(log))
+            {
+                return null;
+            }
+
             return log;
+        }
+
+        private bool FilterMyAccess(JObject logData)
+        {
+            JObject metadata = logData["Metadata"] as JObject;
+            if (metadata.ContainsKey("TargetProcessID") && metadata["TargetProcessID"].ToString() == SelfInfo.PID.ToString())
+            {
+                return false;
+            }
+
+            return true;
         }
     }
 }

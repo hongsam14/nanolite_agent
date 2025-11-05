@@ -20,6 +20,11 @@ namespace Nanolite_agent.Helper
         ProcessCreation = 0,
 
         /// <summary>
+        /// Represents the event code for thread start.
+        /// </summary>
+        ThreadStart,
+
+        /// <summary>
         /// Represents the event code for process access.
         /// </summary>
         ProcessAccess,
