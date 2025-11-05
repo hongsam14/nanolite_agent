@@ -22,7 +22,7 @@
 
 ## Overview
 
-Nanolite Agent is a high-performance Windows monitoring agent designed to capture and export system activities using Event Tracing for Windows (ETW). It integrates with Sysmon for security event monitoring and uses OpenTelemetry Protocol (OTLP) to export telemetry data to observability platforms like Jaeger, Zipkin, or any OTLP-compatible collector.
+Nanolite Agent is a lightweight Windows monitoring agent designed to capture and export system activities using Event Tracing for Windows (ETW). It integrates with Sysmon for security event monitoring and uses OpenTelemetry Protocol (OTLP) to export telemetry data to observability platforms like Jaeger, Zipkin, or any OTLP-compatible collector.
 
 The agent monitors critical system events including:
 - Process creation and termination
@@ -127,14 +127,30 @@ Exporter: "nanolite-agent-server01"
 
 3. **Verify the agent is running**: You should see the Nanolite ASCII logo and initialization messages:
    ```
-    ____    ____  ____    ___   _      ____  ______    ___ 
-   |    \  /    ||    \  /   \ | |    |    ||      |  /  _]
-   |  _  ||  o  ||  _  ||     || |     |  | |      | /  [_ 
-   |  |  ||     ||  |  ||  O  || |___  |  | |_|  |_||    _]
-   |  |  ||  _  ||  |  ||     ||     | |  |   |  |  |   [_ 
-   |  |  ||  |  ||  |  ||     ||     | |  |   |  |  |     |
-   |__|__||__|__||__|__| \___/ |_____||____|  |__|  |_____|
-   c) 2025 Nanolite Agent by shhong ENKI Corp)
+       ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡀⠀⠀⣀⣀⡀⠀
+    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣤⣶⣿⣽⣶⣾⣿⣿⣿⣿⠀
+    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⠂⣰⣿⣿⡿⠟⠋⣿⣿⣿⣿⣿⣿⠏⠀
+    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣶⣿⣣⣾⡿⠛⢉⣤⣶⣿⣿⣿⣿⣿⡿⠃⠀⠀
+    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⡄⣿⣿⣿⠟⢁⣤⣾⣿⣿⣿⣿⣿⣭⠥⠀⠀⠀⠀⠀
+    ⠀⠀⠀⠀⠀⠀⠀⣠⣾⣿⣷⡿⠋⣀⣴⣿⣿⣿⣿⣿⣷⠌⠉⠁⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠀⠀⠀⢀⣼⣿⣿⣿⠟⢀⣼⣿⣿⣿⣿⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠀⠀⢀⣾⣿⣿⡿⠃⣰⣿⣿⣿⣿⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠰⣄⣾⣿⣿⡿⠁⣼⣿⣿⣿⣿⣿⡟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⣀⢻⣿⣿⡟⢀⣾⣿⢻⣿⠻⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠙⢿⣿⡿⠀⣾⣿⣿⠈⠟⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠀⠀⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠀⢰⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠀⣼⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠀⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+     ____    ____  ____    ___   _      ____  ______    ___ 
+    |    \  /    ||    \  /   \ | |    |    ||      |  /  _]
+    |  _  ||  o  ||  _  ||     || |     |  | |      | /  [_ 
+    |  |  ||     ||  |  ||  O  || |___  |  | |_|  |_||    _]
+    |  |  ||  _  ||  |  ||     ||     | |  |   |  |  |   [_ 
+    |  |  ||  |  ||  |  ||     ||     | |  |   |  |  |     |
+    |__|__||__|__||__|__| \___/ |_____||____|  |__|  |_____|
+    c) 2025 Nanolite Agent by shhong ENKI Corp)
+
    ```
 
 4. **Stop the agent**: Press `Ctrl + C` to gracefully stop monitoring and exit.
